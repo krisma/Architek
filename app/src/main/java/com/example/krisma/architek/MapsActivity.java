@@ -1,10 +1,13 @@
 package com.example.krisma.architek;
 
+import android.location.Location;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
@@ -24,9 +27,6 @@ public class MapsActivity extends FragmentActivity {
         super.onResume();
         setUpMapIfNeeded();
     }
-
-
-    
 
     /**
      * Sets up the map if it is possible to do so (i.e., the Google Play services APK is correctly
@@ -63,6 +63,40 @@ public class MapsActivity extends FragmentActivity {
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
+        mMap.setMyLocationEnabled(true);
+
+        mMap.setOnMyLocationChangeListener(locationListener);
+
+
         mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+
+    }
+
+    private Location currentLocation;
+    private boolean setUp;
+
+    GoogleMap.OnMyLocationChangeListener locationListener = new GoogleMap.OnMyLocationChangeListener() {
+        @Override
+        public void onMyLocationChange(Location location) {
+            currentLocation = location;
+            if(!setUp){
+                centerOnUser();
+                setUp = true;
+            }
+        }
+    };
+
+    private void centerOnUser(){
+        CameraPosition position = new CameraPosition.Builder().target(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()))
+                .zoom(17f)
+                .bearing(0)
+                .tilt(0)
+                .build();
+        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+    }
+
+    @Override
+    public void onDestroy(){
+        
     }
 }
