@@ -88,7 +88,7 @@ public class MapsActivity extends FragmentActivity {
 
     private void centerOnUser(){
         CameraPosition position = new CameraPosition.Builder().target(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()))
-                .zoom(17f)
+                .zoom(18f)
                 .bearing(0)
                 .tilt(0)
                 .build();
@@ -97,6 +97,6 @@ public class MapsActivity extends FragmentActivity {
 
     @Override
     public void onDestroy(){
-        
+
     }
 }
