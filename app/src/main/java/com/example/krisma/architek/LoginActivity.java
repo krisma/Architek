@@ -4,9 +4,13 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.ContentResolver;
 import android.content.CursorLoader;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
@@ -14,8 +18,10 @@ import android.os.AsyncTask;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -26,16 +32,20 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Text;
 
+import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-
+import android.content.Intent;
 
 /**
  * A login screen that offers login via email/password.
@@ -59,16 +69,35 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
-
+    public String convertStreamToString(InputStream is) {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        StringBuilder sb = new StringBuilder();
+        String line = null;
+        try {
+            while ((line = reader.readLine()) != null) {
+                sb.append(line + "/n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                is.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return sb.toString();
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
 
         // Set up the login form.
         mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
         populateAutoComplete();
-
 
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -91,8 +120,71 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
         });
 
         Button skipButton = (Button) findViewById(R.id.skip_sign_in_button);
+        skipButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View arg0) {
+                URL url = null;
+                try {
+//                    url = new URL("http://10.0.2.2:8080/skipsignup");
+                    url = new URL("https://architek-server.herokuapp.com/skipsignup");
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("POST");
+                    conn.setDoOutput(true);
+                    conn.setDoInput(true);
+                    conn.setUseCaches(false);
+                    conn.setRequestProperty("Content-Type", "application/json");
+                    conn.setRequestProperty("Accept", "application/json");
+                    conn.connect();
+                    DataOutputStream out = new DataOutputStream(conn.getOutputStream());
+                    StringBuffer params = new StringBuffer();
+                    JSONObject e = new JSONObject();
+                    try {
+                        e.put("secret", "igottafeeling");
+                    } catch (JSONException e1) {
+                        e1.printStackTrace();
+                    };
+                    params.append(e.toString());
+                    out.writeBytes(params.toString());
+                    out.flush();
+                    out.close();
+                    InputStream in = conn.getInputStream();
+                    JSONObject jObject = null;
+                    try {
+                        jObject = new JSONObject(convertStreamToString(in));
+                    } catch (JSONException f) {
+                        f.printStackTrace();
+                    }
+                    if (jObject != null) try {
+                        if (jObject.getBoolean("success") == true) {
+                            Intent intent = new Intent(LoginActivity.this, MapsActivity.class);
+                            startActivity(intent);
 
-        
+                        } else {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(arg0.getContext());
+                            builder.setMessage("Skip registration failed. Please try again.")
+                                    .setCancelable(true)
+                                    .setPositiveButton("Gotcha", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            dialog.cancel();
+                                        };
+                                    });
+
+                            AlertDialog alert = builder.create();
+                            alert.setTitle("Error");
+                            alert.show();
+                        };
+                    } catch (JSONException g) {
+                        g.printStackTrace();
+                    }
+                    ;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        });
+
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
     }
@@ -101,27 +193,6 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
         getLoaderManager().initLoader(0, null, this);
     }
 
-
-    public void skipLogin() {
-        URL url = null;
-        try {
-            url = new URL("http://");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
-            conn.setDoInput(true);
-            conn.setUseCaches(false);
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("Accept", "application/json");
-            conn.connect();
-            DataOutputStream out = new DataOutputStream(conn.getOutputStream());
-            StringBuffer params = new StringBuffer();
-            JSONObject e = new JSONObject();
-            JSONObject f = new JSONObject();
-        } catch (IOException e) {
-
-        };
-    };
 
     /**
      * Attempts to sign in or register the account specified by the login form.

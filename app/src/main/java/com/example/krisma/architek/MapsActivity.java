@@ -7,8 +7,12 @@ import android.os.Bundle;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.GroundOverlay;
+import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MapsActivity extends FragmentActivity {
@@ -66,25 +70,60 @@ public class MapsActivity extends FragmentActivity {
         mMap.setMyLocationEnabled(true);
 
         mMap.setOnMyLocationChangeListener(locationListener);
+        mMap.setOnCameraChangeListener();
 
 
-        mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        LatLng NEWARK = new LatLng(37.871305, -122.259165);// North east corner
+        GroundOverlayOptions newarkMap = new GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(R.drawable.wheeler1))
+                .position(NEWARK, 65f, 58f);
+        GroundOverlay groundOverlay = mMap.addGroundOverlay(newarkMap);
+        groundOverlay.setBearing(-16);
+
 
     }
 
     private Location currentLocation;
     private boolean setUp;
+    private LatLng building = new LatLng(37.871270, -122.259111);
+    private LatLng buildingX = new LatLng(37.870979, -122.259416);
+    private LatLng buildingY = new LatLng(37.871640, -122.258892);
+    private LatLngBounds wheelerBound = new LatLngBounds(buildingX, buildingY);
+    private int numberOfFloors = 4;
 
     GoogleMap.OnMyLocationChangeListener locationListener = new GoogleMap.OnMyLocationChangeListener() {
         @Override
         public void onMyLocationChange(Location location) {
             currentLocation = location;
             if(!setUp){
-                centerOnUser();
+                centerTest();
                 setUp = true;
             }
         }
     };
+
+    GoogleMap.OnCameraChangeListener cameraListener = new GoogleMap.OnCameraChangeListener() {
+        @Override
+        public void onCameraChange(CameraPosition cameraPosition) {
+            LatLng cameraCenter = cameraPosition.target;
+            if (wheelerBound.contains(cameraCenter)) {
+                for (int i=0; i<numberOfFloors; i++) {
+
+                };
+            };
+        }
+    };
+
+    private void centerTest(){
+        CameraPosition position = new CameraPosition.Builder().target(new LatLng(37.871270, -122.259111))
+                .zoom(18f)
+                .bearing(0)
+                .tilt(0)
+                .build();
+        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+    }
+
+
 
     private void centerOnUser(){
         CameraPosition position = new CameraPosition.Builder().target(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()))
@@ -95,8 +134,4 @@ public class MapsActivity extends FragmentActivity {
         mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
     }
 
-    @Override
-    public void onDestroy(){
-
-    }
 }
