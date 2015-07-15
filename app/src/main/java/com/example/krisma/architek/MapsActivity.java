@@ -43,8 +43,10 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -60,7 +62,7 @@ public class MapsActivity extends FragmentActivity {
     private int currentFloor;
     private LatLng currentBuildingLocation;
     private JSONArray currentBuildingMaps;
-    private Map<LatLng, GroundOverlay> overlaysHash;
+    private Map<LatLng, GroundOverlay> overlaysHash = new HashMap<>();
 
     private void resetOverlay() {
 
@@ -98,20 +100,10 @@ public class MapsActivity extends FragmentActivity {
     };
     //buildings.getJSONObject(0).getJSONObject("twoCoordinates").getJSONArray("coordinatesw")
 
-    private void drawOverlaysNearby() {
-        Log.i("Called: drawOverlaysNearby", "Called: drawOverlaysNearby");
-        for (int i=0; i<coordinatesHash.length(); i++) {
-            JSONObject thisBuilding = null;
-            try {
-                thisBuilding = coordinatesHash.getJSONObject(i);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            new LongOperation(thisBuilding).execute();
-        };
-    };
+
 
     private void setFocusBuilding(LatLng location) {
+
         Log.i("Called: setFocusBuilding", "Called: setFocusBuilding");
         URL url;
         final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
@@ -119,6 +111,7 @@ public class MapsActivity extends FragmentActivity {
         InputStream is = null;
         HttpURLConnection con = null;
         String param = String.valueOf(location.latitude) + "," + String.valueOf(location.longitude);
+
         try {
             url = new URL("https://architek-server.herokuapp.com/getbuildingmaps?" +
                     "location=" + param);
@@ -139,6 +132,7 @@ public class MapsActivity extends FragmentActivity {
             currentBuildingMaps = jObject.getJSONArray("floors");
             currentFloor = 0;
             currentFloorNumbers = currentBuildingMaps.length();
+            currentBuildingLocation = location;
             Button upButton = (Button) findViewById(R.id.button);
             Button downButton = (Button) findViewById(R.id.button2);
             upButton.setVisibility(View.VISIBLE);
@@ -154,7 +148,7 @@ public class MapsActivity extends FragmentActivity {
         }
     };
 
-    private Boolean detectOverlay(LatLng currentLocation) {
+    private LatLng detectOverlay(LatLng currentLocation) {
         Log.i("Called: detectOverlay", "Called: detectOverlay");
         for (int i=0; i<coordinatesHash.length(); i++) {
             try {
@@ -162,16 +156,14 @@ public class MapsActivity extends FragmentActivity {
                         .getJSONObject("twoCoordinates"));
                 Log.d("coordinates", bounds.toString());
                 if (bounds.contains(currentLocation)) {
-                    currentBuildingLocation = getLagLngFromLngLat(coordinatesHash.getJSONObject(i).getJSONArray("location"));
-                    Log.d("location", currentBuildingLocation.toString());
-                    setFocusBuilding(currentBuildingLocation);
-                    return true;
+
+                    return getLagLngFromLngLat(coordinatesHash.getJSONObject(i).getJSONArray("location"));
                 };
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         };
-        return false;
+        return null;
     };
 
     private int getDrawableIdByName(String name) {
@@ -191,48 +183,23 @@ public class MapsActivity extends FragmentActivity {
                 (currentLocation.longitude - lastPosition.longitude) *
                         (currentLocation.longitude - lastPosition.longitude)) > 0.005;
     };
-    private void updateCoordinatesHash(LatLng target) {
-        Log.i("Called: updateCoordinateHash", "Called: updateCoordinateHash");
-        URL url;
-        HttpURLConnection con = null;
-        final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        String token = getPrefs.getString("token", "");
-        String coordinateParam = Double.toString(target.latitude) + "," + Double.toString(target.longitude);
-        InputStream is = null;
 
-        try {
-            url = new URL("https://architek-server.herokuapp.com/getbuildingsnearby?" +
-                    "coordinate=" + coordinateParam + "&" + "token=" + token);
-            con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("GET");
-            con.setDoInput(true);
-            con.connect();
-            int responseCode = con.getResponseCode();
-            is = con.getInputStream();
-            JSONObject jObject = null;
-            try {
-                jObject = new JSONObject(convertStreamToString(is));
-            } catch (JSONException f) {
-                f.printStackTrace();
-            }
-            ;
-            JSONArray buildings = jObject.getJSONArray("buildings");
-            coordinatesHash = buildings;
-//            Log.d("building", buildings.getJSONObject(0).getJSONObject("twoCoordinates").getJSONArray("coordinatesw").toString());
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                con.disconnect();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    };
 
-    private void updateOverlaysHash() {
+    private void updateOverlays() {
+
         for (int i=0; i<coordinatesHash.length(); i++) {
-            
+            try {
+                JSONObject thisBuilding = coordinatesHash.getJSONObject(i);
+                LatLng toDraw = getLagLngFromLngLat(thisBuilding.getJSONArray("location"));
+                if (overlaysHash.containsKey(toDraw)) {
+                    continue;
+                } else {
+                    new AsyncDrawDefaultFloor(thisBuilding).execute();
+                };
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            };
         };
     };
 
@@ -288,20 +255,8 @@ public class MapsActivity extends FragmentActivity {
                     return;
                 }
                 currentFloor += 1;
-                URL url = null;
-                try {
-                    Log.d("asdasd",currentBuildingMaps.toString());
-                    url = new URL(currentBuildingMaps.getJSONObject(currentFloor).getString("map"));
-                    Bitmap bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream());
-                    groundOverlay.setImage(BitmapDescriptorFactory.fromBitmap(bmp));
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                ;
+                new AsyncDrawNextFloor().execute();
+
             }
 
             ;
@@ -313,21 +268,8 @@ public class MapsActivity extends FragmentActivity {
                 if (currentFloor == 0) {
                     return;
                 }
-                ;
                 currentFloor -= 1;
-                URL url = null;
-                try {
-                    url = new URL(currentBuildingMaps.getJSONObject(currentFloor).getString("map"));
-                    Bitmap bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream());
-                    groundOverlay.setImage(BitmapDescriptorFactory.fromBitmap(bmp));
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                ;
+                new AsyncDrawNextFloor().execute();
             };
         });
 
@@ -378,58 +320,27 @@ public class MapsActivity extends FragmentActivity {
 
         mMap.setOnCameraChangeListener(cameraListener);
 
-//        LatLng NEWARK = new LatLng(37.871305, -122.259165);
-//        GroundOverlayOptions newarkMap = new GroundOverlayOptions()
-//                .image(BitmapDescriptorFactory.fromResource(R.drawable.wheeler1))
-//                .position(NEWARK, 65f, 58f);
-//        groundOverlay = mMap.addGroundOverlay(newarkMap);
-//        groundOverlay.setBearing(-16);
-//        BitmapDescriptor overlayBitmap = BitmapDescriptorFactory.fromResource(R.drawable.saintjean1);
-//        currentOverlayId = R.drawable.saintjean1;
-//        LatLng Saint = new LatLng(43.708827, 7.288305);
-//        GroundOverlayOptions saintMap = new GroundOverlayOptions()
-//                .image(BitmapDescriptorFactory.fromResource(currentOverlayId))
-//                .position(Saint, 90f, 75f);
-//        groundOverlay = mMap.addGroundOverlay(saintMap);
-//        groundOverlay.setBearing(90);
-
-
 
     }
-//
-//    private Location currentLocation;
-//    private boolean setUp;
-//    private LatLng buildingX = new LatLng(37.870979, -122.259416);
-//    private LatLng buildingY = new LatLng(37.871640, -122.258892);
-//    private LatLngBounds wheelerBound = new LatLngBounds(buildingX, buildingY);
-//    private LatLng buildingA = new LatLng(43.708451, 7.287812);
-//    private LatLng buildingB = new LatLng(43.709096, 7.288738);
-//    private LatLngBounds saintjeanBound = new LatLngBounds(buildingA, buildingB);
-//    private int numberOfFloors = 2;
-//    int currentFloor = 0;
+
 
 
     private GoogleMap.OnCameraChangeListener cameraListener = new GoogleMap.OnCameraChangeListener() {
         @Override
         public void onCameraChange(CameraPosition cameraPosition) {
-            if (lastMoveFarFarEnough(cameraPosition.target)) {
-                if (groundOverlay != null) {
-                    resetOverlay();
+        if (lastMoveFarFarEnough(cameraPosition.target)) {
+            new AsyncUpdateCoordinatesHash(cameraPosition.target).execute();
+
+        };
+        if (lastMoveFarEnough(cameraPosition.target)) {
+            if (coordinatesHash != null) {
+                LatLng tmp = detectOverlay(cameraPosition.target);
+
+                if (tmp != null) {
+                    setFocusBuilding(tmp);
                 };
-
-                updateCoordinatesHash(cameraPosition.target);
-                drawOverlaysNearby();
-
             };
-            if (lastMoveFarEnough(cameraPosition.target)) {
-                detectOverlay(cameraPosition.target);
-            };
-//            if (detectOverlay(cameraPosition.target)) {
-//                Button upButton = (Button) findViewById(R.id.button);
-//                Button downButton = (Button) findViewById(R.id.button2);
-//                upButton.setVisibility(View.INVISIBLE);
-//                downButton.setVisibility(View.INVISIBLE);
-//            }
+        };
         }
     };
 
@@ -437,11 +348,11 @@ public class MapsActivity extends FragmentActivity {
         return currentOverlayId;
     }
 
-    private class LongOperation extends AsyncTask<String, Void, Bitmap> {
+    private class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
 
         private final JSONObject thisBuilding;
 
-        public LongOperation(JSONObject thisBuilding){
+        public AsyncDrawDefaultFloor(JSONObject thisBuilding){
             this.thisBuilding = thisBuilding;
         }
 
@@ -478,8 +389,9 @@ public class MapsActivity extends FragmentActivity {
                 GroundOverlayOptions overlayOptions = new GroundOverlayOptions()
                         .image(BitmapDescriptorFactory.fromBitmap(result))
                         .position(anchor, width, height);
-                groundOverlay = mMap.addGroundOverlay(overlayOptions);
-                groundOverlay.setBearing(bearing);
+                GroundOverlay temp = mMap.addGroundOverlay(overlayOptions);
+                overlaysHash.put(anchor, temp);
+                temp.setBearing(bearing);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -492,4 +404,100 @@ public class MapsActivity extends FragmentActivity {
         @Override
         protected void onProgressUpdate(Void... values) {}
     }
+
+
+    private class AsyncUpdateCoordinatesHash extends AsyncTask<String, Void, JSONArray> {
+
+        private final LatLng target;
+
+        public AsyncUpdateCoordinatesHash(LatLng target){
+            this.target = target;
+        }
+
+        @Override
+        protected JSONArray doInBackground(String... params) {
+            URL url;
+            HttpURLConnection con = null;
+            JSONArray buildings= null;
+            final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+            String token = getPrefs.getString("token", "");
+            String coordinateParam = Double.toString(target.latitude) + "," + Double.toString(target.longitude);
+            InputStream is = null;
+            try {
+                url = new URL("https://architek-server.herokuapp.com/getbuildingsnearby?" +
+                        "coordinate=" + coordinateParam + "&" + "token=" + token);
+                con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod("GET");
+                con.setDoInput(true);
+                con.connect();
+                int responseCode = con.getResponseCode();
+                is = con.getInputStream();
+                JSONObject jObject = null;
+                try {
+                    jObject = new JSONObject(convertStreamToString(is));
+                } catch (JSONException f) {
+                    f.printStackTrace();
+                }
+                ;
+                buildings = jObject.getJSONArray("buildings");
+                return buildings;
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (ProtocolException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return buildings;
+        }
+            @Override
+        protected void onPostExecute(JSONArray result) {
+            coordinatesHash = result;
+            updateOverlays();
+        };
+
+        @Override
+        protected void onPreExecute() {}
+
+        @Override
+        protected void onProgressUpdate(Void... values) {}
+    }
+
+
+    private class AsyncDrawNextFloor extends AsyncTask<String, Void, Bitmap> {
+
+        @Override
+        protected Bitmap doInBackground(String... params) {
+            Bitmap bmp = null;
+            URL url = null;
+            try {
+                url = new URL(currentBuildingMaps.getJSONObject(currentFloor).getString("map"));
+                bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream());
+
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return bmp;
+        }
+
+        @Override
+        protected void onPostExecute(Bitmap result) {
+            GroundOverlay toSetImage = overlaysHash.get(currentBuildingLocation);
+            toSetImage.setImage(BitmapDescriptorFactory.fromBitmap(result));
+        }
+
+        @Override
+        protected void onPreExecute() {}
+
+        @Override
+        protected void onProgressUpdate(Void... values) {}
+    }
+
+
 }
