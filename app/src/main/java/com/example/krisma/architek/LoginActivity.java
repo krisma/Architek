@@ -8,10 +8,12 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.CursorLoader;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -19,6 +21,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
+import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
 import android.util.Log;
@@ -47,6 +50,10 @@ import java.util.ArrayList;
 import java.util.List;
 import android.content.Intent;
 
+import com.google.android.gms.maps.model.LatLng;
+
+import static android.app.PendingIntent.getActivity;
+
 /**
  * A login screen that offers login via email/password.
  */
@@ -63,12 +70,11 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
      * Keep track of the login task to ensure we can cancel it if requested.
      */
     private UserLoginTask mAuthTask = null;
-
-    // UI references.
     private AutoCompleteTextView mEmailView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
+
     public String convertStreamToString(InputStream is) {
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         StringBuilder sb = new StringBuilder();
@@ -92,6 +98,7 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
 
@@ -124,10 +131,11 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
             @Override
             public void onClick(View arg0) {
                 URL url = null;
+                HttpURLConnection conn = null;
                 try {
 //                    url = new URL("http://10.0.2.2:8080/skipsignup");
                     url = new URL("https://architek-server.herokuapp.com/skipsignup");
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("POST");
                     conn.setDoOutput(true);
                     conn.setDoInput(true);
@@ -156,6 +164,11 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
                     }
                     if (jObject != null) try {
                         if (jObject.getBoolean("success") == true) {
+
+
+                            SharedPreferences.Editor editor = getPrefs.edit();
+                            editor.putString("token",jObject.getString("token"));
+                            editor.apply();
                             Intent intent = new Intent(LoginActivity.this, MapsActivity.class);
                             startActivity(intent);
 
@@ -180,6 +193,12 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
                     ;
                 } catch (IOException e) {
                     e.printStackTrace();
+                } finally {
+                    try {
+                        conn.disconnect();
+                    } catch (Exception e) {
+                        e.printStackTrace(); //If you want further info on failure...
+                    }
                 }
 
             }
