@@ -100,6 +100,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     // UI ELEMENTS
     private FloatingActionButton editButton;
     private FloatingActionsMenu expandMenu;
+    private FloorPickerFragment floorpickerFragment;
     private FloatingActionButton mMinusOneButton;
     private FloatingActionButton mPlusOneButton;
     private TextView floorView;
@@ -186,8 +187,9 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             currentBuildingLocation = location;
 <<<<<<< Updated upstream
 
-            // TODO: Show FLoor Buttons
-
+            if(currentBuildingMaps != null) {
+                showFloorpicker(currentFloorNumbers, currentFloor);
+            }
 
 =======
             ImageButton upButton = (ImageButton) findViewById(R.id.button);
@@ -344,7 +346,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         mPlusOneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (currentFloor < currentFloorNumbers) { // TODO: Should not exceed max floors
+                if(currentFloor < currentFloorNumbers) { // TODO: Should not exceed max floors
                     currentFloor++;
 
                     floorView.setText(String.valueOf(currentFloor));
@@ -367,8 +369,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         expandMenu = (FloatingActionsMenu) findViewById(R.id.right_menu);
         expandMenu.setSoundEffectsEnabled(true);
 
-        // TODO: Hide FLoor Buttons
-
+        hideFloorpicker();
 
     }
 
@@ -546,7 +547,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                     if (tmp != null) {
                         setFocusBuilding(tmp);
                     } else {
-                        // TODO: Hide FLoor Buttons
+                        hideFloorpicker();
                     }
 
                 }
@@ -556,6 +557,31 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         }
     };
 
+    private void showFloorpicker(int maxFloors, int defaultFloor) {
+
+        if(floorpickerFragment == null){
+            floorpickerFragment = FloorPickerFragment.newInstance(maxFloors,defaultFloor);
+        }
+        Log.d("floorplan", "shown");
+
+        FragmentManager fm = getFragmentManager();
+        fm.beginTransaction()
+                .setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                .show(floorpickerFragment)
+                .commit();
+    }
+
+    private void hideFloorpicker(){
+        Log.d("floorplan", "hidden");
+        if(floorpickerFragment != null) {
+            FragmentManager fm = getFragmentManager();
+            fm.beginTransaction()
+                    .setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                    .hide(floorpickerFragment)
+                    .commit();
+            floorpickerFragment = null;
+        }
+    }
 
     public int getCurrentOverlayId() {
         return currentOverlayId;
