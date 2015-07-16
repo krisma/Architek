@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<resources>
+    <color name="fab_color_1">#ff5252</color>
+    <color name="fab_color_1_muted">#ff8080</color>
+    <color name="fab_color_2">#9c27b0</color>
+    <color name="fab_color_2_muted">#a56ab0</color>
+    <color name="black_semi_transparent">#B2000000</color>
+    <color name="background">#e5e5e5</color>
+    <color name="half_black">#808080</color>
+    <color name="white">#fafafa</color>
+    <color name="white_pressed">#f1f1f1</color>
+    <color name="pink">#e91e63</color>
+    <color name="pink_pressed">#ec407a</color>
+    <color name="blue_semi_transparent">#805677fc</color>
+    <color name="blue_semi_transparent_pressed">#80738ffe</color>
+    <color name="orange_semi_transparent">#CCFF9E19</color>
+    <color name="orange_semi_transparent_pressed">#B3FF9E19</color>
+    <color name="yellow_semi_transparent">#CCFFFF47</color>
+    <color name="yellow_semi_transparent_pressed">#B3FFFF47</color>
+    <color name="red_semi_transparent">#CCFF7B59</color>
+    <color name="red_semi_transparent_pressed">#B3FF7B59</color>
+    <color name="green_semi_transparent">#CC6ED43E</color>
+    <color name="green_semi_transparent_pressed">#B36ED43E</color>
+    <color name="gray_semi_transparent">#CCC0C0C2</color>
+    <color name="gray_semi_transparent_pressed">#B3C0C0C2</color>
+</resources>

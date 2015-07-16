@@ -1,0 +1,46 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".FloorPickerFragment">
+
+    <com.getbase.floatingactionbutton.FloatingActionButton
+        android:id="@+id/downButton"
+        android:text="UCB"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:fab_plusIconColor="@color/white"
+        app:fab_colorNormal="@color/gray_semi_transparent"
+        app:fab_colorPressed="@color/gray_semi_transparent_pressed"
+        app:fab_icon="@drawable/ic_exposure_neg_1_white_48dp"
+        app:fab_size="mini"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_gravity="center_horizontal|bottom" />
+
+    <com.getbase.floatingactionbutton.FloatingActionButton
+        android:id="@+id/upButton"
+        android:text="UCB"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:fab_plusIconColor="@color/white"
+        app:fab_colorNormal="@color/gray_semi_transparent"
+        app:fab_colorPressed="@color/gray_semi_transparent_pressed"
+        app:fab_icon="@drawable/ic_exposure_plus_1_white_48dp"
+        app:fab_size="mini"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_gravity="center_horizontal|top" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Floor 1"
+        android:id="@+id/floorView"
+        android:layout_gravity="center"
+        android:background="@color/background_floating_material_light" />
+
+
+</FrameLayout>

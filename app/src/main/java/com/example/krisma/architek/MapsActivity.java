@@ -1,34 +1,30 @@
 package com.example.krisma.architek;
 
-import android.app.ActionBar;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-import android.content.Intent;
+import android.app.FragmentManager;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.RelativeLayout;
 
+import com.getbase.floatingactionbutton.FloatingActionButton;
+import com.getbase.floatingactionbutton.FloatingActionsMenu;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONArray;
@@ -36,33 +32,37 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
-public class MapsActivity extends FragmentActivity {
+public class MapsActivity extends FragmentActivity implements FloorPickerFragment.OnFragmentInteractionListener, GoogleMap.OnMarkerClickListener {
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
 
     private GroundOverlay groundOverlay;
     private JSONArray coordinatesHash;
-    private LatLng lastPosition = new LatLng(0,0);
+    private LatLng lastPosition = new LatLng(0, 0);
     private int currentOverlayId;
     private int currentFloorNumbers;
     private int currentFloor;
     private LatLng currentBuildingLocation;
     private JSONArray currentBuildingMaps;
     private Map<LatLng, GroundOverlay> overlaysHash = new HashMap<>();
+    private boolean firstLoad = true;
+    AsyncDrawNextFloor drawNextFloorAsyncTask;
+    private Marker marker;
+
+    // UI ELEMENTS
+    private FloatingActionButton editButton;
+    private FloatingActionsMenu expandMenu;
+    private FloorPickerFragment floorpickerFragment;
 
     private void resetOverlay() {
 
@@ -71,20 +71,20 @@ public class MapsActivity extends FragmentActivity {
         currentBuildingMaps = null;
         currentFloorNumbers = 0;
         currentBuildingLocation = null;
-        Button upButton = (Button) findViewById(R.id.button);
-        Button downButton = (Button) findViewById(R.id.button2);
-        upButton.setVisibility(View.INVISIBLE);
-        downButton.setVisibility(View.INVISIBLE);
-
     }
+
     private LatLng getLagLngFromLngLat(JSONArray coordinate) {
         try {
             return new LatLng(coordinate.getDouble(1), coordinate.getDouble(0));
         } catch (JSONException e) {
             e.printStackTrace();
-        };
+        }
+        ;
         return null;
-    };
+    }
+
+    ;
+
     private LatLngBounds getBoundsFromJSONObject(JSONObject twoCoordinates) {
         LatLng sw = null;
         LatLng ne = null;
@@ -97,14 +97,15 @@ public class MapsActivity extends FragmentActivity {
             e.printStackTrace();
         }
         return new LatLngBounds(sw, ne);
-    };
-    //buildings.getJSONObject(0).getJSONObject("twoCoordinates").getJSONArray("coordinatesw")
+    }
 
+    ;
+    //buildings.getJSONObject(0).getJSONObject("twoCoordinates").getJSONArray("coordinatesw")
 
 
     private void setFocusBuilding(LatLng location) {
 
-        Log.i("Called: setFocusBuilding", "Called: setFocusBuilding");
+        Log.i("Called:", "setFocusBuilding");
         URL url;
         final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         String token = getPrefs.getString("token", "");
@@ -133,10 +134,9 @@ public class MapsActivity extends FragmentActivity {
             currentFloor = 0;
             currentFloorNumbers = currentBuildingMaps.length();
             currentBuildingLocation = location;
-            Button upButton = (Button) findViewById(R.id.button);
-            Button downButton = (Button) findViewById(R.id.button2);
-            upButton.setVisibility(View.VISIBLE);
-            downButton.setVisibility(View.VISIBLE);
+
+            showFloorpicker(currentFloorNumbers, currentFloor);
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -146,11 +146,13 @@ public class MapsActivity extends FragmentActivity {
                 e.printStackTrace();
             }
         }
-    };
+    }
+
+    ;
 
     private LatLng detectOverlay(LatLng currentLocation) {
         Log.i("Called: detectOverlay", "Called: detectOverlay");
-        for (int i=0; i<coordinatesHash.length(); i++) {
+        for (int i = 0; i < coordinatesHash.length(); i++) {
             try {
                 LatLngBounds bounds = getBoundsFromJSONObject(coordinatesHash.getJSONObject(i)
                         .getJSONObject("twoCoordinates"));
@@ -158,36 +160,46 @@ public class MapsActivity extends FragmentActivity {
                 if (bounds.contains(currentLocation)) {
 
                     return getLagLngFromLngLat(coordinatesHash.getJSONObject(i).getJSONArray("location"));
-                };
+                }
+                ;
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-        };
+        }
+        ;
         return null;
-    };
+    }
+
+    ;
 
     private int getDrawableIdByName(String name) {
         String packageName = getPackageName();
         int resId = getResources().getIdentifier(name, "drawable", packageName);
         return resId;
     }
+
     private boolean lastMoveFarEnough(LatLng currentLocation) {
         return Math.sqrt((currentLocation.latitude - lastPosition.latitude) *
                 (currentLocation.latitude - lastPosition.latitude) +
                 (currentLocation.longitude - lastPosition.longitude) *
-                (currentLocation.longitude - lastPosition.longitude)) > 0.0005;
-    };
+                        (currentLocation.longitude - lastPosition.longitude)) > 0.0005;
+    }
+
+    ;
+
     private boolean lastMoveFarFarEnough(LatLng currentLocation) {
         return Math.sqrt((currentLocation.latitude - lastPosition.latitude) *
                 (currentLocation.latitude - lastPosition.latitude) +
                 (currentLocation.longitude - lastPosition.longitude) *
                         (currentLocation.longitude - lastPosition.longitude)) > 0.005;
-    };
+    }
+
+    ;
 
 
     private void updateOverlays() {
 
-        for (int i=0; i<coordinatesHash.length(); i++) {
+        for (int i = 0; i < coordinatesHash.length(); i++) {
             try {
                 JSONObject thisBuilding = coordinatesHash.getJSONObject(i);
                 LatLng toDraw = getLagLngFromLngLat(thisBuilding.getJSONArray("location"));
@@ -195,13 +207,18 @@ public class MapsActivity extends FragmentActivity {
                     continue;
                 } else {
                     new AsyncDrawDefaultFloor(thisBuilding).execute();
-                };
+                }
+                ;
 
             } catch (JSONException e) {
                 e.printStackTrace();
-            };
-        };
-    };
+            }
+            ;
+        }
+        ;
+    }
+
+    ;
 
     public String convertStreamToString(InputStream is) {
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -228,11 +245,14 @@ public class MapsActivity extends FragmentActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        setupGUI();
+
+
         setUpMapIfNeeded();
-        Button upButton = (Button) findViewById(R.id.button);
-        Button downButton = (Button) findViewById(R.id.button2);
-        Button ucbButton = (Button) findViewById(R.id.button3);
-        ucbButton.setOnClickListener(new View.OnClickListener() {
+
+        editButton = (FloatingActionButton) findViewById(R.id.editButton);
+        editButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 CameraPosition position = new CameraPosition.Builder().target(new LatLng(37.871223, -122.259060))
@@ -240,40 +260,21 @@ public class MapsActivity extends FragmentActivity {
                         .bearing(0)
                         .tilt(0)
                         .build();
-//
                 mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
             }
         });
-        upButton.setVisibility(View.INVISIBLE);
-        downButton.setVisibility(View.INVISIBLE);
+    }
+    private void setupGUI() {
+        getActionBar().hide();
 
-//
-        upButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (currentFloor + 1 == currentFloorNumbers) {
-                    return;
-                }
-                currentFloor += 1;
-                new AsyncDrawNextFloor().execute();
+        expandMenu = (FloatingActionsMenu) findViewById(R.id.right_menu);
+        expandMenu.setSoundEffectsEnabled(true);
+        expandMenu.setBackgroundResource(R.drawable.ic_pin_drop_white_48dp);
+        expandMenu.setBackgroundColor(getResources().getColor(R.color.red_semi_transparent));
 
-            }
+    }
 
-            ;
-        });
 
-        downButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (currentFloor == 0) {
-                    return;
-                }
-                currentFloor -= 1;
-                new AsyncDrawNextFloor().execute();
-            };
-        });
-
-    };
 
     @Override
     protected void onResume() {
@@ -317,42 +318,125 @@ public class MapsActivity extends FragmentActivity {
      */
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
-
         mMap.setOnCameraChangeListener(cameraListener);
+        mMap.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+            @Override
+            public void onMyLocationChange(Location location) {
+                if (firstLoad) {
+                    CameraPosition position = new CameraPosition.Builder().target(new LatLng(location.getLatitude(), location.getLongitude()))
+                            .zoom(18f)
+                            .bearing(0)
+                            .tilt(0)
+                            .build();
+                    mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+                    firstLoad = false;
+                }
+            }
+        });
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                if (marker != null) {
+                    marker.remove();
+                }
+                marker = mMap.addMarker(new MarkerOptions().position(latLng));
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng), new GoogleMap.CancelableCallback() {
+                    @Override
+                    public void onFinish() {
+                        expandMenu.expand();
+                    }
 
+                    @Override
+                    public void onCancel() {
+
+                    }
+                });
+            }
+        });
+        mMap.setOnMarkerClickListener(this);
 
     }
-
-
 
     private GoogleMap.OnCameraChangeListener cameraListener = new GoogleMap.OnCameraChangeListener() {
         @Override
         public void onCameraChange(CameraPosition cameraPosition) {
-        if (lastMoveFarFarEnough(cameraPosition.target)) {
-            new AsyncUpdateCoordinatesHash(cameraPosition.target).execute();
+            if (lastMoveFarFarEnough(cameraPosition.target)) {
+                new AsyncUpdateCoordinatesHash(cameraPosition.target).execute();
 
-        };
-        if (lastMoveFarEnough(cameraPosition.target)) {
-            if (coordinatesHash != null) {
-                LatLng tmp = detectOverlay(cameraPosition.target);
+            }
 
-                if (tmp != null) {
-                    setFocusBuilding(tmp);
-                };
-            };
-        };
+            if (lastMoveFarEnough(cameraPosition.target)) {
+                if (coordinatesHash != null) {
+                    LatLng tmp = detectOverlay(cameraPosition.target);
+
+                    if (tmp != null) {
+                        setFocusBuilding(tmp);
+                    }
+
+                }
+
+            }
+
         }
     };
 
+    private void showFloorpicker(int maxFloors, int defaultFloor) {
+
+        if(floorpickerFragment == null){
+            floorpickerFragment = FloorPickerFragment.newInstance(maxFloors,defaultFloor);
+        }
+
+        FragmentManager fm = getFragmentManager();
+        fm.beginTransaction()
+                .setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                .show(floorpickerFragment)
+                .commit();
+    }
+
+    private void hideFloorpicker(){
+        if(floorpickerFragment != null) {
+            FragmentManager fm = getFragmentManager();
+            fm.beginTransaction()
+                    .setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
+                    .hide(floorpickerFragment)
+                    .commit();
+            floorpickerFragment = null;
+        }
+    }
+
     public int getCurrentOverlayId() {
         return currentOverlayId;
+    }
+
+
+    @Override
+    public void onFragmentInteraction(int currentFloor) {
+        this.currentFloor = currentFloor;
+        overlayCurrentFloor();
+    }
+
+    public void overlayCurrentFloor(){
+        if(drawNextFloorAsyncTask != null && !drawNextFloorAsyncTask.isCancelled()){
+            drawNextFloorAsyncTask.cancel(true);
+        }
+        drawNextFloorAsyncTask = new AsyncDrawNextFloor();
+        drawNextFloorAsyncTask.execute();
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        if (marker != null) {
+            marker.remove();
+            expandMenu.collapse();
+        }
+        return true;
     }
 
     private class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
 
         private final JSONObject thisBuilding;
 
-        public AsyncDrawDefaultFloor(JSONObject thisBuilding){
+        public AsyncDrawDefaultFloor(JSONObject thisBuilding) {
             this.thisBuilding = thisBuilding;
         }
 
@@ -380,8 +464,8 @@ public class MapsActivity extends FragmentActivity {
         @Override
         protected void onPostExecute(Bitmap result) {
             try {
-                LatLng anchor = new LatLng((Double)thisBuilding.getJSONArray("location").get(1),
-                        (Double)thisBuilding.getJSONArray("location").get(0));
+                LatLng anchor = new LatLng((Double) thisBuilding.getJSONArray("location").get(1),
+                        (Double) thisBuilding.getJSONArray("location").get(0));
                 Float height = new Float(thisBuilding.getDouble("height"));
                 Float width = new Float(thisBuilding.getDouble("width"));
                 Float bearing = new Float(thisBuilding.getDouble("bearing"));
@@ -399,10 +483,12 @@ public class MapsActivity extends FragmentActivity {
         }
 
         @Override
-        protected void onPreExecute() {}
+        protected void onPreExecute() {
+        }
 
         @Override
-        protected void onProgressUpdate(Void... values) {}
+        protected void onProgressUpdate(Void... values) {
+        }
     }
 
 
@@ -410,7 +496,7 @@ public class MapsActivity extends FragmentActivity {
 
         private final LatLng target;
 
-        public AsyncUpdateCoordinatesHash(LatLng target){
+        public AsyncUpdateCoordinatesHash(LatLng target) {
             this.target = target;
         }
 
@@ -418,7 +504,7 @@ public class MapsActivity extends FragmentActivity {
         protected JSONArray doInBackground(String... params) {
             URL url;
             HttpURLConnection con = null;
-            JSONArray buildings= null;
+            JSONArray buildings = null;
             final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
             String token = getPrefs.getString("token", "");
             String coordinateParam = Double.toString(target.latitude) + "," + Double.toString(target.longitude);
@@ -452,17 +538,22 @@ public class MapsActivity extends FragmentActivity {
             }
             return buildings;
         }
-            @Override
+
+        @Override
         protected void onPostExecute(JSONArray result) {
             coordinatesHash = result;
             updateOverlays();
-        };
+        }
+
+        ;
 
         @Override
-        protected void onPreExecute() {}
+        protected void onPreExecute() {
+        }
 
         @Override
-        protected void onProgressUpdate(Void... values) {}
+        protected void onProgressUpdate(Void... values) {
+        }
     }
 
 
@@ -488,15 +579,19 @@ public class MapsActivity extends FragmentActivity {
 
         @Override
         protected void onPostExecute(Bitmap result) {
-            GroundOverlay toSetImage = overlaysHash.get(currentBuildingLocation);
-            toSetImage.setImage(BitmapDescriptorFactory.fromBitmap(result));
+            if(result != null) {
+                GroundOverlay toSetImage = overlaysHash.get(currentBuildingLocation);
+                toSetImage.setImage(BitmapDescriptorFactory.fromBitmap(result));
+            }
         }
 
         @Override
-        protected void onPreExecute() {}
+        protected void onPreExecute() {
+        }
 
         @Override
-        protected void onProgressUpdate(Void... values) {}
+        protected void onProgressUpdate(Void... values) {
+        }
     }
 
 
