@@ -13,7 +13,22 @@
     android:id="@+id/map"
     tools:context=".MapsActivity"
     android:name="com.google.android.gms.maps.SupportMapFragment"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal">
+        <ImageButton
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/button4"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="false"
+            android:layout_marginBottom="20dp"
 
+<<<<<<< Updated upstream
     <com.getbase.floatingactionbutton.FloatingActionsMenu
         android:id="@+id/right_menu"
         android:layout_width="wrap_content"
@@ -68,11 +83,80 @@
         android:layout_alignParentStart="false"
         android:layout_alignParentLeft="true" />
 
+=======
+            android:background="@android:color/transparent"
+            android:src="@drawable/people" />
+        <ImageButton
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/button5"
+
+            android:layout_marginBottom="20dp"
+            android:layout_alignParentEnd="false"
+            android:layout_alignParentStart="false"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="false"
+            android:layout_alignParentLeft="true"
+            android:src="@drawable/calendar"
+            android:background="@android:color/transparent" />
+        <ImageButton
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/button6"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="false"
+            android:layout_alignParentStart="false"
+            android:layout_marginBottom="20dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/chat"
+
+            android:layout_alignParentRight="true" />
+        <ImageButton
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/button7"
+            android:layout_alignParentStart="false"
+            android:layout_marginBottom="20dp"
+            android:layout_alignParentLeft="false"
+            android:layout_alignParentBottom="true"
+            android:src="@drawable/reset"
+            android:background="@android:color/transparent"
+
+            android:layout_alignParentRight="true" />
+
+    </LinearLayout>
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:id="@+id/button"
+        android:background="@android:color/transparent"
+        android:src="@drawable/up"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="250dp" />
+
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:id="@+id/button2"
+        android:background="@android:color/transparent"
+        android:src="@drawable/down"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="false"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="300dp" />
+>>>>>>> Stashed changes
 
     <com.getbase.floatingactionbutton.FloatingActionButton
         android:id="@+id/downButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+<<<<<<< Updated upstream
         app:fab_plusIconColor="@color/white"
         app:fab_colorNormal="@color/gray_semi_transparent"
         app:fab_colorPressed="@color/gray_semi_transparent_pressed"
@@ -118,6 +202,38 @@
         android:id="@+id/debugView"
         android:src="@drawable/wheeler1"
         android:visibility="invisible"/>
+=======
+        android:text="GO TO UCB"
+        android:id="@+id/button3"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="58dp" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:id="@+id/editText"
+        android:layout_alignParentTop="true"
+        android:background="#ffffffff"
+        android:layout_marginTop="10dp"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp" />
+
+    <ImageButton
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageButton"
+        android:layout_alignTop="@+id/editText"
+        android:layout_alignBottom="@+id/editText"
+        android:src="@drawable/search"
+        android:background="#ffffffff"
+        android:adjustViewBounds="false"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="10dp"
+        android:minWidth="50dp"
+        android:layout_alignParentTop="false" />
+>>>>>>> Stashed changes
 
 
 </RelativeLayout>

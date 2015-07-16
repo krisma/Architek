@@ -5,8 +5,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+<<<<<<< Updated upstream
 import android.graphics.Color;
 
+=======
+import android.graphics.Camera;
+import android.graphics.drawable.Drawable;
+import android.location.Criteria;
+>>>>>>> Stashed changes
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
@@ -16,6 +22,7 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.View;
+<<<<<<< Updated upstream
 import android.widget.TextView;
 
 import com.example.krisma.architek.trackers.LocationTracker;
@@ -24,6 +31,19 @@ import com.getbase.floatingactionbutton.FloatingActionsMenu;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.LocationSource;
+=======
+import android.view.ViewGroup;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.RelativeLayout;
+
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.GoogleMapOptions;
+>>>>>>> Stashed changes
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
@@ -52,7 +72,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+<<<<<<< Updated upstream
 import java.util.Map;
+=======
+public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerClickListener {
+>>>>>>> Stashed changes
 
 public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerClickListener, LocationSource.OnLocationChangedListener {
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
@@ -68,6 +92,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private DeadReckoning deadReckoning;
     private URL currentOverlayURL;
     private Map<LatLng, GroundOverlay> overlaysHash = new HashMap<>();
+<<<<<<< Updated upstream
     private boolean firstLoad = true;
     AsyncDrawNextFloor drawNextFloorAsyncTask;
     private Marker marker;
@@ -88,6 +113,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         currentBuildingLocation = null;
     }
 
+=======
+    private Marker marker;
+    private Boolean buttonsAnimated = false;
+>>>>>>> Stashed changes
     private LatLng getLagLngFromLngLat(JSONArray coordinate) {
         try {
             return new LatLng(coordinate.getDouble(1), coordinate.getDouble(0));
@@ -155,10 +184,17 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             currentFloor = 0;
             currentFloorNumbers = currentBuildingMaps.length();
             currentBuildingLocation = location;
+<<<<<<< Updated upstream
 
             // TODO: Show FLoor Buttons
 
 
+=======
+            ImageButton upButton = (ImageButton) findViewById(R.id.button);
+            ImageButton downButton = (ImageButton) findViewById(R.id.button2);
+            upButton.setVisibility(View.VISIBLE);
+            downButton.setVisibility(View.VISIBLE);
+>>>>>>> Stashed changes
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -260,10 +296,28 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
 
 
         setUpMapIfNeeded();
+<<<<<<< Updated upstream
 
         editButton = (FloatingActionButton) findViewById(R.id.editButton);
         editButton.setOnClickListener(new View.OnClickListener() {
 
+=======
+        ImageButton upButton = (ImageButton) findViewById(R.id.button);
+        ImageButton downButton = (ImageButton) findViewById(R.id.button2);
+        Button ucbButton = (Button) findViewById(R.id.button3);
+        ImageButton button4 = (ImageButton) findViewById(R.id.button4);
+        ImageButton button5 = (ImageButton) findViewById(R.id.button5);
+        ImageButton button6 = (ImageButton) findViewById(R.id.button6);
+        ImageButton button7 = (ImageButton) findViewById(R.id.button7);
+        button4.setVisibility(View.INVISIBLE);
+        button5.setVisibility(View.INVISIBLE);
+        button6.setVisibility(View.INVISIBLE);
+        button7.setVisibility(View.INVISIBLE);
+
+
+
+        ucbButton.setOnClickListener(new View.OnClickListener() {
+>>>>>>> Stashed changes
             @Override
             public void onClick(View v) {
                 CameraPosition position = new CameraPosition.Builder().target(new LatLng(37.871223, -122.259060))
@@ -376,6 +430,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
+<<<<<<< Updated upstream
         deadReckoning = new DeadReckoning(this, MapsActivity.this, mMap);
 
         mMap.setMyLocationEnabled(true);
@@ -439,6 +494,41 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             }
         });
         mMap.setOnMarkerClickListener(this);
+=======
+        mMap.setMyLocationEnabled(true);
+        mMap.getUiSettings().setMapToolbarEnabled(false);
+
+        // Getting LocationManager object from System Service LOCATION_SERVICE
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+        // Creating a criteria object to retrieve provider
+        Criteria criteria = new Criteria();
+
+        // Getting the name of the best provider
+        String provider = locationManager.getBestProvider(criteria, true);
+
+        // Getting Current Location
+//        Location location = locationManager.getLastKnownLocation(provider);
+//        CameraPosition init = new CameraPosition(new LatLng(location.getLatitude(),
+//                location.getLongitude()), 16f, 0, 0);
+        CameraPosition init = new CameraPosition(new LatLng(43.693122, 7.235370), 16, 0, 0);
+        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(init));
+        mMap.setOnCameraChangeListener(cameraListener);
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                if (marker != null) {
+                    marker.remove();
+                }
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+                marker = mMap.addMarker(new MarkerOptions()
+                        .position(latLng));
+
+            }
+        });
+        mMap.setOnMarkerClickListener(this);
+
+>>>>>>> Stashed changes
     }
 
     private GoogleMap.OnCameraChangeListener cameraListener = new GoogleMap.OnCameraChangeListener() {
@@ -471,6 +561,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         return currentOverlayId;
     }
 
+<<<<<<< Updated upstream
     private JSONObject currentBuilding;
 
     public void onFloorChanged(int currentFloor) {
@@ -485,14 +576,84 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         }
         drawNextFloorAsyncTask = new AsyncDrawNextFloor();
         drawNextFloorAsyncTask.execute();
+=======
+    private void buttonsIn() {
+        final Animation in1 = new AlphaAnimation(0.0f, 1.0f);
+        in1.setDuration(250);
+        in1.setStartOffset(0);
+        final Animation in2 = new AlphaAnimation(0.0f, 1.0f);
+        in2.setDuration(250);
+        in2.setStartOffset(50);
+        final Animation in3 = new AlphaAnimation(0.0f, 1.0f);
+        in3.setDuration(250);
+        in3.setStartOffset(150);
+        final Animation in4 = new AlphaAnimation(0.0f, 1.0f);
+        in4.setDuration(250);
+        in4.setStartOffset(300);
+
+        ImageButton button4 = (ImageButton) findViewById(R.id.button4);
+        ImageButton button5 = (ImageButton) findViewById(R.id.button5);
+        ImageButton button6 = (ImageButton) findViewById(R.id.button6);
+        ImageButton button7 = (ImageButton) findViewById(R.id.button7);
+
+
+        button4.startAnimation(in1);
+        button4.setVisibility(View.VISIBLE);
+        button5.startAnimation(in2);
+        button5.setVisibility(View.VISIBLE);
+        button6.startAnimation(in3);
+        button6.setVisibility(View.VISIBLE);
+        button7.startAnimation(in4);
+        button7.setVisibility(View.VISIBLE);
+    }
+    private void buttonsOut() {
+        final Animation out1 = new AlphaAnimation(1.0f, 0.0f);
+        out1.setDuration(250);
+        out1.setStartOffset(0);
+        final Animation out2 = new AlphaAnimation(1.0f, 0.0f);
+        out2.setDuration(250);
+        out2.setStartOffset(50);
+        final Animation out3 = new AlphaAnimation(1.0f, 0.0f);
+        out3.setDuration(250);
+        out3.setStartOffset(150);
+        final Animation out4 = new AlphaAnimation(1.0f, 0.0f);
+        out4.setDuration(250);
+        out4.setStartOffset(300);
+
+        ImageButton button4 = (ImageButton) findViewById(R.id.button4);
+        ImageButton button5 = (ImageButton) findViewById(R.id.button5);
+        ImageButton button6 = (ImageButton) findViewById(R.id.button6);
+        ImageButton button7 = (ImageButton) findViewById(R.id.button7);
+
+
+        button4.startAnimation(out1);
+        button4.setVisibility(View.INVISIBLE);
+        button5.startAnimation(out2);
+        button5.setVisibility(View.INVISIBLE);
+        button6.startAnimation(out3);
+        button6.setVisibility(View.INVISIBLE);
+        button7.startAnimation(out4);
+        button7.setVisibility(View.INVISIBLE);
+>>>>>>> Stashed changes
     }
 
     @Override
     public boolean onMarkerClick(Marker marker) {
+<<<<<<< Updated upstream
         if (marker != null) {
             marker.remove();
             expandMenu.collapse();
         }
+=======
+        if (buttonsAnimated) {
+            buttonsAnimated = false;
+            buttonsOut();
+            marker.remove();
+            return true;
+        }
+        buttonsIn();
+        buttonsAnimated = true;
+>>>>>>> Stashed changes
         return true;
     }
 
