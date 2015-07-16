@@ -69,8 +69,8 @@
         android:layout_alignParentLeft="true" />
 
     <fragment class="com.example.krisma.architek.FloorPickerFragment"
-        android:layout_width="25dp"
-        android:layout_height="75dp"
+        android:layout_width="50dp"
+        android:layout_height="150dp"
         android:id="@+id/floorpickerFragment"
         android:layout_marginRight="16dp"
         android:layout_centerVertical="true"

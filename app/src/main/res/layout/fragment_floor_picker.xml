@@ -37,7 +37,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="Floor 1"
+        android:text="1"
         android:id="@+id/floorView"
         android:layout_gravity="center"
         android:background="@color/background_floating_material_light" />

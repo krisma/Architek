@@ -269,8 +269,6 @@ public class MapsActivity extends FragmentActivity implements FloorPickerFragmen
 
         expandMenu = (FloatingActionsMenu) findViewById(R.id.right_menu);
         expandMenu.setSoundEffectsEnabled(true);
-        expandMenu.setBackgroundResource(R.drawable.ic_pin_drop_white_48dp);
-        expandMenu.setBackgroundColor(getResources().getColor(R.color.red_semi_transparent));
 
     }
 
@@ -319,6 +317,7 @@ public class MapsActivity extends FragmentActivity implements FloorPickerFragmen
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
         mMap.setOnCameraChangeListener(cameraListener);
+        mMap.getUiSettings().setCompassEnabled(false);
         mMap.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
             @Override
             public void onMyLocationChange(Location location) {
@@ -564,7 +563,7 @@ public class MapsActivity extends FragmentActivity implements FloorPickerFragmen
             Bitmap bmp = null;
             URL url = null;
             try {
-                url = new URL(currentBuildingMaps.getJSONObject(currentFloor).getString("map"));
+                url = new URL(currentBuildingMaps.getJSONObject(currentFloor).getString("map")); // TODO: KRIS LOOK HERE -- NULL POINTER
                 bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream());
 
             } catch (MalformedURLException e) {
