@@ -14,7 +14,7 @@ public class ParticleSet {
     private static final float BIG_FLOAT = 10000f;
 
     // Static variables
-    public static int maxIterations = 5;
+    public static int maxIterations = 100;
     private final double startY;
     private final double startX;
     private final Bitmap floorplan;
@@ -25,8 +25,9 @@ public class ParticleSet {
     private final Context context;
 
     // Instance variables
-    private float distanceNoiseFactor = 10f;
-    private float angleNoiseFactor = 2f;
+    private float distanceNoiseFactor = 1f;
+    private float angleNoiseFactor = 7f;
+    private float spreadArea = 10f;
     private int numParticles;
     private Particle[] particles;
     private double _x, _y, _heading;
@@ -75,8 +76,8 @@ public class ParticleSet {
         // TODO: signs may be an issue
         double hm = 360 * Math.random();
 
-        double x = startX + Math.random() * 10 - Math.random() * 10;
-        double y = startY + Math.random() * 10 - Math.random() * 10;
+        double x = startX + Math.random() * spreadArea - Math.random() * spreadArea;
+        double y = startY + Math.random() * spreadArea - Math.random() * spreadArea;
 
         Particle p = new Particle(context, floorplan, new Pose((float)y,(float)x,(float)hm));
         p.setWeight(1);

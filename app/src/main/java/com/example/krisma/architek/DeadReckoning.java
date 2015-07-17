@@ -115,13 +115,26 @@ public class DeadReckoning implements MoveListener, HeadingListener {
 
     @Override
     public void onMove(Move move) {
+        double h = heading;
         if(mapsActivity.getOiv().getParticleSet() != null) {
+
+            float distanceLeft = move.getDistanceTraveled();
+            while(distanceLeft - 2 > 2){
+                Move tmp = move;
+                tmp.setDistance(2);
+                tmp.setHeading(h);
+                mapsActivity.getOiv().getParticleSet().updateParticles(tmp);
+                distanceLeft = distanceLeft - 2;
+            }
+
             Move tmp = move;
-            tmp.setHeading(heading);
+            tmp.setDistance(distanceLeft);
+            tmp.setHeading(h);
             mapsActivity.getOiv().getParticleSet().updateParticles(tmp);
             mapsActivity.getOiv().displayParticles();
 
-            Log.d("Move", "Moved " + tmp.getDistanceTraveled() + " in heading: " + tmp.getHeading());
+
+            Log.d("Move", "Moved " + move.getDistanceTraveled() + " in heading: " + move.getHeading());
         }
     }
 

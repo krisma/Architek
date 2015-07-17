@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 
+import android.graphics.Point;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
@@ -15,6 +16,8 @@ import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.view.Display;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -81,12 +84,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private FloatingActionButton mMinusOneButton;
     private FloatingActionButton mPlusOneButton;
     private TextView floorView;
-
-    public OverlayImageView getOiv() {
-        return oiv;
-    }
-
-    private OverlayImageView oiv;
 
     private void resetOverlay() {
 
@@ -284,17 +281,33 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             }
         });
     }
+
+    private OverlayImageView oiv;
     private void setupGUI() {
         getActionBar().hide();
 
-        oiv = new OverlayImageView(this);
+        RelativeLayout relativeLayout = (RelativeLayout) findViewById(R.id.mapLayout);
 
-        RelativeLayout mapLayout = (RelativeLayout) findViewById(R.id.mapLayout);
-        mapLayout.addView(oiv);
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.wheeler11);
+        oiv = new OverlayImageView(this);
+        relativeLayout.addView(oiv);
+
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.wheeler11_edged);
+
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int width = size.x;
+        int height = size.y;
+
+        double aspect = bitmap.getWidth()/bitmap.getHeight();
+
+        bitmap=Bitmap.createScaledBitmap(bitmap, width,(int) (width * aspect), true);
+
         oiv.setBitmap(bitmap);
-        oiv.setRight(mapLayout.getRight());
+        oiv.setX(0);
+        oiv.setY(0);
         oiv.invalidate();
+
 
         //Find the buttons
         mPlusOneButton = (FloatingActionButton) findViewById(R.id.upButton);
@@ -512,6 +525,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             expandMenu.collapse();
         }
         return true;
+    }
+
+    public OverlayImageView getOiv() {
+        return oiv;
     }
 
     private class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {

@@ -76,14 +76,14 @@ public class Particle {
     public void calculateWeight(Bitmap floorplan) {
 
         double x = pose.getX();
-        double y = pose.getY()+ 150;
+        double y = pose.getY();
 
         if(x > floorplan.getWidth()) x = floorplan.getWidth() - 1;
         if(y > floorplan.getHeight()) y = floorplan.getHeight() - 1;
 
         int mapColor = floorplan.getPixel((int)x, (int)y);
 
-        if (mapColor == Color.BLACK) {
+        if (blockingColors.contains(mapColor)) {
             weight = 0.1f; // Collision with wall
         } else if (mapColor == Color.WHITE) {
             weight = 0.9f; // no collision
@@ -101,23 +101,17 @@ public class Particle {
      * @param move the robot's move
      */
     public void applyMove(Move move, float distanceNoiseFactor, float angleNoiseFactor) {
-        // Apply Heading Noise
-        pose.setHeading((float) (move.getHeading() + (angleNoiseFactor * rand.nextGaussian())));
-        pose.setHeading((float) ((int) (pose.getHeading() + 0.5f) % 360));
-
         // Apply Location Noise
         double ym = move.getDistanceTraveled() * ((float) Math.sin(Math.toRadians(move.getHeading())));
         double xm = move.getDistanceTraveled() * ((float) Math.cos(Math.toRadians(move.getHeading())));
-        xm = distanceNoiseFactor * xm * rand.nextGaussian();
-        ym = distanceNoiseFactor * ym * rand.nextGaussian();
-
 
         // TODO: signs may be an issue
         //double y = pose.getY() + (180 / Math.PI) * (ym / 6378137);
         //double x = pose.getX() + (180 / Math.PI) * (xm / 6378137) / Math.cos(pose.getY());
 
-        double y = pose.getY() + ym;
-        double x = pose.getX() + xm;
+        double y = pose.getY() + ym + (distanceNoiseFactor * ym * rand.nextGaussian());
+        double x = pose.getX() + xm + (distanceNoiseFactor * xm * rand.nextGaussian());
+
 
 
         if(x > bitmap.getWidth()){
@@ -126,7 +120,13 @@ public class Particle {
         if(y > bitmap.getHeight()){
             y = bitmap.getHeight() -1;
         }
+
         pose.setX(x);
         pose.setY(y);
+
+        // Apply Heading Noise
+        pose.setHeading((float) (move.getHeading() + (angleNoiseFactor * rand.nextGaussian())));
+        pose.setHeading((float) ((int) (pose.getHeading() + 0.5f) % 360));
+
     }
 }

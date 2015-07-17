@@ -55,10 +55,11 @@ public class OverlayImageView extends ImageView {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        float offsetH = 150;
+        this.setPadding(0,0,0,0);
+        //canvas.drawRect(this.getDrawable().getBounds(), avgPaint);
 
         for (Point point : points) {
-            canvas.drawCircle(point.x, point.y + offsetH, 10, paint);
+            canvas.drawCircle(point.x, point.y, 10, paint);
         }
 
         Pose p;
@@ -68,16 +69,16 @@ public class OverlayImageView extends ImageView {
             {
                 p = particles[i].getPose();
 
-                canvas.drawCircle((float)p.getX(), (float)p.getY() + offsetH, 5f, paint);
+                canvas.drawCircle((float)p.getX(), (float)p.getY(), 5f, paint);
             }
 
             Pose averagePose = particleSet.getAveragePose();
-            canvas.drawCircle((float) averagePose.getX(), (float) averagePose.getY() + offsetH, 5f, avgPaint);
-            Log.d("Average Pose", "X: " + averagePose.getX() + " -- Y: " + averagePose.getY()  + offsetH);
+            canvas.drawCircle((float) averagePose.getX(), (float) averagePose.getY(), 5f, avgPaint);
+            Log.d("Average Pose", "X: " + averagePose.getX() + " -- Y: " + averagePose.getY());
 
         }
 
-        drawCorners(canvas,offsetH);
+        //drawCorners(canvas,offsetH);
     }
 
     private void drawCorners(Canvas canvas, float offsetH) {

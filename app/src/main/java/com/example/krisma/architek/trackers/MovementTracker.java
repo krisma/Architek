@@ -29,7 +29,7 @@ public class MovementTracker implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        float distance = getStepLength(184) / 10;
+        float distance = getStepLength(184) / 5;
         updateListeners(distance);
     }
 
