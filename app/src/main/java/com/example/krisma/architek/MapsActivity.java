@@ -16,6 +16,9 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.example.krisma.architek.trackers.LocationTracker;
@@ -78,6 +81,12 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private FloatingActionButton mMinusOneButton;
     private FloatingActionButton mPlusOneButton;
     private TextView floorView;
+
+    public OverlayImageView getOiv() {
+        return oiv;
+    }
+
+    private OverlayImageView oiv;
 
     private void resetOverlay() {
 
@@ -277,6 +286,15 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     }
     private void setupGUI() {
         getActionBar().hide();
+
+        oiv = new OverlayImageView(this);
+
+        RelativeLayout mapLayout = (RelativeLayout) findViewById(R.id.mapLayout);
+        mapLayout.addView(oiv);
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.wheeler11);
+        oiv.setBitmap(bitmap);
+        oiv.setRight(mapLayout.getRight());
+        oiv.invalidate();
 
         //Find the buttons
         mPlusOneButton = (FloatingActionButton) findViewById(R.id.upButton);

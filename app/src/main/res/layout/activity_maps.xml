@@ -112,12 +112,5 @@
         android:layout_alignParentRight="true"
         android:layout_marginRight="16dp" />
 
-    <ImageView
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:id="@+id/debugView"
-        android:src="@drawable/wheeler1"
-        android:visibility="invisible"/>
-
 
 </RelativeLayout>

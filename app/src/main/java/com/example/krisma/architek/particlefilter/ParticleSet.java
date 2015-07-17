@@ -1,19 +1,12 @@
 package com.example.krisma.architek.particlefilter;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.Log;
-import android.view.View;
-import android.widget.ImageView;
-
-import com.example.krisma.architek.MapsActivity;
-import com.example.krisma.architek.R;
-import com.google.android.gms.maps.GoogleMap;
-
-import java.util.Random;
 
 
 public class ParticleSet {
@@ -21,16 +14,19 @@ public class ParticleSet {
     private static final float BIG_FLOAT = 10000f;
 
     // Static variables
-    public static int maxIterations = 100;
+    public static int maxIterations = 5;
     private final double startY;
     private final double startX;
     private final Bitmap floorplan;
-    private final MapsActivity mapsActivity;
     private final Canvas canvas;
+    private final Paint paint;
+    //private final ImageView debugView;
+    private final Bitmap mutableBitmap;
+    private final Context context;
 
     // Instance variables
-    private float distanceNoiseFactor = 2f;
-    private float angleNoiseFactor = 4f;
+    private float distanceNoiseFactor = 10f;
+    private float angleNoiseFactor = 2f;
     private int numParticles;
     private Particle[] particles;
     private double _x, _y, _heading;
@@ -51,18 +47,23 @@ public class ParticleSet {
     /**
      * Create a set of particles.
      */
-    public ParticleSet(int numParticles, MapsActivity mapsActivity, GoogleMap m, Bitmap floorplan, double overlayXdim, double overlayYdim, double startX, double startY) {
+    public ParticleSet(Context context, int numParticles, Bitmap floorplan, double startX, double startY) {
+        this.context = context;
         this.numParticles = numParticles;
-        this.mapsActivity = mapsActivity;
-
         this.startX = startX;
         this.startY = startY;
-
-
         this.floorplan = floorplan;
 
-        Bitmap mutableBitmap = floorplan.copy(Bitmap.Config.ARGB_8888, true);
+        paint = new Paint();
+        paint.setColor(Color.RED);
+        paint.setStyle(Paint.Style.FILL);
+
+        mutableBitmap = floorplan.copy(Bitmap.Config.ARGB_8888, true);
+
         canvas = new Canvas(mutableBitmap);
+        canvas.drawCircle((float)startX,(float)startY,10,paint);
+
+        //debugView = (ImageView) mapsActivity.findViewById(R.id.debugView);
 
         particles = new Particle[numParticles];
         for (int i = 0; i < numParticles; i++) {
@@ -77,7 +78,7 @@ public class ParticleSet {
         double x = startX + Math.random() * 10 - Math.random() * 10;
         double y = startY + Math.random() * 10 - Math.random() * 10;
 
-        Particle p = new Particle(new Pose((float)y,(float)x,(float)hm));
+        Particle p = new Particle(context, floorplan, new Pose((float)y,(float)x,(float)hm));
         p.setWeight(1);
 
         return p;
@@ -114,7 +115,7 @@ public class ParticleSet {
 
     public boolean resample() {
         // Rename particles as oldParticles and create a new set
-        Particle[] oldParticles = particles;
+        Particle[] oldParticles = particles.clone();
         particles = new Particle[numParticles];
 
         // Continually pick a random number and select the particles with
@@ -126,10 +127,10 @@ public class ParticleSet {
         while (count < numParticles) {
             iterations++;
             if (iterations >= maxIterations) {
-                System.out.println("Lost: count = " + count);
+                Log.d("Resample","Lost: count = " + count);
                 if (count > 0) { // Duplicate the ones we have so far
                     for (int i = count; i < numParticles; i++) {
-                        particles[i] = new Particle(particles[i % count].getPose());
+                        particles[i] = new Particle(context, floorplan, particles[i % count].getPose());
                         particles[i].setWeight(particles[i % count].getWeight());
                     }
                     return false;
@@ -142,14 +143,16 @@ public class ParticleSet {
             }
             float rand = (float) Math.random();
             for (int i = 0; i < numParticles && count < numParticles; i++) {
+                if(oldParticles[i].getWeight() == 0) continue;
+
                 if (oldParticles[i].getWeight() >= rand) {
                     Pose p = oldParticles[i].getPose();
-                    double x = p.getImageX();
-                    double y = p.getImageY();
+                    double x = p.getX();
+                    double y = p.getY();
                     double angle = p.getHeading();
 
                     // Create a new instance of the particle and set its weight
-                    particles[count] = new Particle(new Pose(x, y, angle));
+                    particles[count] = new Particle(context, floorplan,  new Pose(x, y, angle));
                     particles[count++].setWeight(1);
                 }
             }
@@ -197,8 +200,8 @@ public class ParticleSet {
 
         for (int i = 0; i < numParticles; i++) {
             Pose p = particles[i].getPose();
-            double x = p.getImageX();
-            double y = p.getImageY();
+            double x = p.getX();
+            double y = p.getY();
             //float weight = particles.getParticle(i).getWeight();
             float weight = 1; // weight is historic at this point, as resample has been done
             estimatedX += (x * weight);
@@ -227,13 +230,31 @@ public class ParticleSet {
         varH /= totalWeights;
         varH -= (estimatedAngle * estimatedAngle);
 
-        // Normalize angle
+//        // Normalize angle
         while (estimatedAngle > 180) estimatedAngle -= 360;
         while (estimatedAngle < -180) estimatedAngle += 360;
 
         _x = estimatedX;
         _y = estimatedY;
         _heading = estimatedAngle;
+    }
+
+
+    public Pose getAveragePose(){
+        float x = 0;
+        float y = 0;
+
+        float xH = 0f, yH = 0f;
+
+        for(Particle p : particles){
+            x += p.getPose().getX();
+            y += p.getPose().getY();
+
+            xH += Math.cos(Math.toRadians(p.getPose().getHeading()));
+            yH += Math.sin(Math.toRadians(p.getPose().getHeading()));
+        }
+
+        return new Pose((int)x/numParticles(), y/numParticles(),Math.atan2(yH, xH));
     }
 
     /**
@@ -313,32 +334,10 @@ public class ParticleSet {
         applyMove(move);
         calculateWeights(floorplan);
         resample();
-        displayParticles();
-
-
     }
 
 
-    private void displayParticles(){
-
-        Pose p;
-
-        Paint paint = new Paint();
-        paint.setColor(Color.RED);
-
-        for (int i = 0; i < numParticles(); i++)
-        {
-            p = getParticle(i).getPose();
-
-            canvas.drawCircle((float)p.getImageX(), (float)p.getImageY(), 10f, paint);
-        }
-
-        p = getPose();
-        Log.d("Particles", p.getImageX() +  " : " + p.getImageY());
-
-        ImageView debugView = (ImageView) mapsActivity.findViewById(R.id.debugView);
-        debugView.draw(canvas);
-        debugView.setVisibility(View.VISIBLE);
+    public Particle[] getParticles() {
+        return particles;
     }
-
 }

@@ -9,11 +9,14 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
+import android.graphics.Region;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Handler;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -54,6 +57,7 @@ public class DeadReckoning implements MoveListener, HeadingListener {
     private double heading;
     private ParticleSet particleSet;
     private HeadingTracker headingTracker;
+    private Point userLocation;
 
     public DeadReckoning(Context context, MapsActivity mapsActivity, GoogleMap map){
         mContext = context;
@@ -66,7 +70,23 @@ public class DeadReckoning implements MoveListener, HeadingListener {
         setupLocationTracker();
         setupHeadingTracker();
         setupMovementTracker();
+
+//        mapsActivity.findViewById(R.id.debugView).setOnTouchListener(new View.OnTouchListener() {
+//            @Override
+//            public boolean onTouch(View v, MotionEvent event) {
+//                Region region = new Region(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
+//
+//                if(region.contains((int)event.getX(), (int)event.getY())){
+//                    transitionToIndoor(userLocation);
+//                    userLocation = new Point((int)event.getX(), (int)event.getY());
+//                }
+//                return false;
+//            }
+//        });
+
     }
+
+
 
     private void setupLocationTracker(){
         locationTracker = new LocationTracker(mContext);
@@ -95,10 +115,12 @@ public class DeadReckoning implements MoveListener, HeadingListener {
 
     @Override
     public void onMove(Move move) {
-        if(particleSet != null) {
+        if(mapsActivity.getOiv().getParticleSet() != null) {
             Move tmp = move;
             tmp.setHeading(heading);
-            particleSet.updateParticles(tmp);
+            mapsActivity.getOiv().getParticleSet().updateParticles(tmp);
+            mapsActivity.getOiv().displayParticles();
+
             Log.d("Move", "Moved " + tmp.getDistanceTraveled() + " in heading: " + tmp.getHeading());
         }
     }
@@ -116,17 +138,17 @@ public class DeadReckoning implements MoveListener, HeadingListener {
     BroadcastReceiver transitionReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            transitionToIndoor();
+            //transitionToIndoor();
         }
     };
 
-    public void transitionToIndoor() {
-
-        Location loc = locationTracker.getCurrentLocation();
-
-        if(loc == null || mapsActivity.getCurrentOverlayURL() == null){
-            retryTransition();
-        } else {
+    public void transitionToIndoor(Point user) {
+//
+//        Location loc = locationTracker.getCurrentLocation();
+//
+//        if(loc == null || mapsActivity.getCurrentOverlayURL() == null){
+//            retryTransition();
+//        } else {
 
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -134,38 +156,30 @@ public class DeadReckoning implements MoveListener, HeadingListener {
             try {
                 Bitmap bitmap = BitmapFactory.decodeStream(mapsActivity.getCurrentOverlayURL().openConnection().getInputStream());
 
-                double debugX = 37.871098;
-                double debugY = -122.259089;
-
-                LatLng debug = new LatLng(debugX, debugY);
-
-
                 try {
                     JSONArray coord1 = mapsActivity.getCurrentBuilding().getJSONObject("fourCoordinates").getJSONArray("coordinate1");
                     JSONArray coord2 = mapsActivity.getCurrentBuilding().getJSONObject("fourCoordinates").getJSONArray("coordinate2");
 
-                    double[] xyDimXDimY = mapToImageLocation(debug, bitmap.getWidth(), bitmap.getHeight(), new LatLng(coord1.getDouble(0), coord1.getDouble(1)), new LatLng(coord2.getDouble(0), coord2.getDouble(1))); // TODO: NEEDS FIX!!
+                    //double[] xyDimXDimY = mapToImageLocation(debug, bitmap.getWidth(), bitmap.getHeight(), new LatLng(coord1.getDouble(0), coord1.getDouble(1)), new LatLng(coord2.getDouble(0), coord2.getDouble(1))); // TODO: NEEDS FIX!!
 
-                    double startX = xyDimXDimY[0];
-                    double startY = xyDimXDimY[1];
 
-                    this.particleSet = new ParticleSet(100, mapsActivity, map, bitmap, bitmap.getWidth(), bitmap.getHeight(), startX, startY);
+                    this.particleSet = new ParticleSet(mContext, 100, bitmap, user.x, user.y);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
 
 
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
+       // }
     }
 
 
     private Runnable transitionToIndoorRunnable = new Runnable() {
         @Override
         public void run() {
-            transitionToIndoor();
+           //transitionToIndoor();
         }
     };
 

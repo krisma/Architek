@@ -1,27 +1,21 @@
 package com.example.krisma.architek.particlefilter;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.location.Location;
+import android.util.Log;
+
+import com.example.krisma.architek.R;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Represents a particle for the particle filtering algorithm. The state of the
- * particle is the pose, which represents a possible pose of the robot.
- * The weight represents the relative probability that the robot has this
- * pose. Weights are from 0 to 1.
- * <p/>
- * This is a version of the leJOS class MCLParticle with a light sensor used to
- * detect black or white tiles in a 2D map of black/white tiles.
- *
- * @author Ole Caprani
- * @version 22.05.15
- */
+
 public class Particle {
     private static Random rand = new Random();
+    private Bitmap bitmap;
+    private Context context;
     private Pose pose;
     private float weight = 1;
     List<Integer> blockingColors = new ArrayList<Integer>();
@@ -31,15 +25,21 @@ public class Particle {
         blockingColors.add(Color.BLACK);
         blockingColors.add(Color.GRAY);
         blockingColors.add(Color.DKGRAY);
-        blockingColors.add(Color.LTGRAY);
+        blockingColors.add(Color.TRANSPARENT);
     }
     /**
      * Create a particle with a specific pose
      *
      * @param pose the pose
      */
-    public Particle(Pose pose) {
+    public Particle(Context context, Bitmap bitmap, Pose pose) {
+        this.context = context;
+        this.bitmap = bitmap;
         this.pose = pose;
+        blockingColors.add(Color.BLACK);
+        blockingColors.add(Color.GRAY);
+        blockingColors.add(Color.DKGRAY);
+        blockingColors.add(Color.TRANSPARENT);
     }
 
     /**
@@ -75,15 +75,24 @@ public class Particle {
      */
     public void calculateWeight(Bitmap floorplan) {
 
-        // TODO: X and Y must be over 0
-        int mapColor = floorplan.getPixel((int)pose.getImageX(), (int)pose.getImageY());
+        double x = pose.getX();
+        double y = pose.getY()+ 150;
 
-        if (blockingColors.contains(mapColor))
+        if(x > floorplan.getWidth()) x = floorplan.getWidth() - 1;
+        if(y > floorplan.getHeight()) y = floorplan.getHeight() - 1;
+
+        int mapColor = floorplan.getPixel((int)x, (int)y);
+
+        if (mapColor == Color.BLACK) {
             weight = 0.1f; // Collision with wall
-        else
-            weight = 0.9f; // No collision
-
+        } else if (mapColor == Color.WHITE) {
+            weight = 0.9f; // no collision
+        } else {
+            weight = 0.0f; // outside of map
+        }
     }
+
+
 
     /**
      * Apply the robot's move to the particle with a bit of random noise.
@@ -104,11 +113,20 @@ public class Particle {
 
 
         // TODO: signs may be an issue
-        double y = pose.getImageY() + (180 / Math.PI) * (ym / 6378137);
-        double x = pose.getImageX() + (180 / Math.PI) * (xm / 6378137) / Math.cos(pose.getImageY());
+        //double y = pose.getY() + (180 / Math.PI) * (ym / 6378137);
+        //double x = pose.getX() + (180 / Math.PI) * (xm / 6378137) / Math.cos(pose.getY());
+
+        double y = pose.getY() + ym;
+        double x = pose.getX() + xm;
 
 
-        pose.setImageX(x);
-        pose.setImageY(y);
+        if(x > bitmap.getWidth()){
+            x = bitmap.getWidth() - 1;
+        }
+        if(y > bitmap.getHeight()){
+            y = bitmap.getHeight() -1;
+        }
+        pose.setX(x);
+        pose.setY(y);
     }
 }

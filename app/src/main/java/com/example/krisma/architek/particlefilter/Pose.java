@@ -8,14 +8,14 @@ import android.location.LocationManager;
  */
 public class Pose {
 
-    private double imageX;
-    private double imageY;
+    private double x;
+    private double y;
 
     private double heading;
 
     public Pose(double y, double x, double heading){
-        this.imageX = x;
-        this.imageY = y;
+        this.x = x;
+        this.y = y;
         this.heading = heading;
     }
 
@@ -27,19 +27,27 @@ public class Pose {
         return heading;
     }
 
-    public double getImageY() {
-        return imageY;
+    public double getY() {
+        return y;
     }
 
-    public void setImageY(double imageY) {
-        this.imageY = imageY;
+    public void setY(double y) {
+        if(y <= 0){
+            this.y = 0;
+        } else {
+            this.y = y;
+        }
     }
 
-    public double getImageX() {
-        return imageX;
+    public double getX() {
+        return x;
     }
 
-    public void setImageX(double imageX) {
-        this.imageX = imageX;
+    public void setX(double x) {
+        if(x <= 0){
+            this.x = 0;
+        } else {
+            this.x = x;
+        }
     }
 }
