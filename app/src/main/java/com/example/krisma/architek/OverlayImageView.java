@@ -14,6 +14,7 @@ import android.widget.ImageView;
 import com.example.krisma.architek.particlefilter.Particle;
 import com.example.krisma.architek.particlefilter.ParticleSet;
 import com.example.krisma.architek.particlefilter.Pose;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,9 +55,7 @@ public class OverlayImageView extends ImageView {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
-        this.setPadding(0,0,0,0);
-        //canvas.drawRect(this.getDrawable().getBounds(), avgPaint);
+        this.setPadding(0, 0, 0, 0);
 
         for (Point point : points) {
             canvas.drawCircle(point.x, point.y, 10, paint);
@@ -72,20 +71,9 @@ public class OverlayImageView extends ImageView {
                 canvas.drawCircle((float)p.getX(), (float)p.getY(), 5f, paint);
             }
 
-            Pose averagePose = particleSet.getAveragePose();
+            Pose averagePose = particleSet.getAveragePose(); // map to latlng
             canvas.drawCircle((float) averagePose.getX(), (float) averagePose.getY(), 5f, avgPaint);
-            Log.d("Average Pose", "X: " + averagePose.getX() + " -- Y: " + averagePose.getY());
-
         }
-
-        //drawCorners(canvas,offsetH);
-    }
-
-    private void drawCorners(Canvas canvas, float offsetH) {
-        canvas.drawCircle(getLeft(), getTop() + offsetH, 30, avgPaint);
-        canvas.drawCircle(getRight(), getTop() + offsetH, 30, avgPaint);
-        canvas.drawCircle(getLeft(), getBottom() - offsetH, 30, avgPaint);
-        canvas.drawCircle(getRight(), getBottom() - offsetH, 30, avgPaint);
 
     }
 
@@ -119,8 +107,5 @@ public class OverlayImageView extends ImageView {
 
         invalidate();
         Log.d("Particles", p.getX() + " : " + p.getY());
-
-        //debugView.draw(canvas);
-        //debugView.setImageDrawable(new BitmapDrawable(mutableBitmap));
     }
 }

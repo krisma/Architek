@@ -23,9 +23,10 @@ public class ParticleSet {
     //private final ImageView debugView;
     private final Bitmap mutableBitmap;
     private final Context context;
+    private final int startH;
 
     // Instance variables
-    private float distanceNoiseFactor = 1f;
+    private float distanceNoiseFactor = 1.5f;
     private float angleNoiseFactor = 7f;
     private float spreadArea = 10f;
     private int numParticles;
@@ -53,6 +54,7 @@ public class ParticleSet {
         this.numParticles = numParticles;
         this.startX = startX;
         this.startY = startY;
+        this.startH = 180;
         this.floorplan = floorplan;
 
         paint = new Paint();
@@ -62,7 +64,7 @@ public class ParticleSet {
         mutableBitmap = floorplan.copy(Bitmap.Config.ARGB_8888, true);
 
         canvas = new Canvas(mutableBitmap);
-        canvas.drawCircle((float)startX,(float)startY,10,paint);
+        canvas.drawCircle((float) startX, (float) startY, 10, paint);
 
         //debugView = (ImageView) mapsActivity.findViewById(R.id.debugView);
 
@@ -79,31 +81,11 @@ public class ParticleSet {
         double x = startX + Math.random() * spreadArea - Math.random() * spreadArea;
         double y = startY + Math.random() * spreadArea - Math.random() * spreadArea;
 
-        Particle p = new Particle(context, floorplan, new Pose((float)y,(float)x,(float)hm));
+        Particle p = new Particle(context, floorplan, new Pose((float) y, (float) x, (float) hm));
         p.setWeight(1);
 
         return p;
     }
-
-    /**
-     * Return the number of particles in the set
-     *
-     * @return the number of particles
-     */
-    public int numParticles() {
-        return numParticles;
-    }
-
-    /**
-     * Get a specific particle
-     *
-     * @param i the index of the particle
-     * @return the particle
-     */
-    public Particle getParticle(int i) {
-        return particles[i];
-    }
-
 
     /**
      * Resample the set picking those with higher weights.
@@ -128,7 +110,7 @@ public class ParticleSet {
         while (count < numParticles) {
             iterations++;
             if (iterations >= maxIterations) {
-                Log.d("Resample","Lost: count = " + count);
+                Log.d("Resample", "Lost: count = " + count);
                 if (count > 0) { // Duplicate the ones we have so far
                     for (int i = count; i < numParticles; i++) {
                         particles[i] = new Particle(context, floorplan, particles[i % count].getPose());
@@ -144,7 +126,7 @@ public class ParticleSet {
             }
             float rand = (float) Math.random();
             for (int i = 0; i < numParticles && count < numParticles; i++) {
-                if(oldParticles[i].getWeight() == 0) continue;
+                if (oldParticles[i].getWeight() == 0) continue;
 
                 if (oldParticles[i].getWeight() >= rand) {
                     Pose p = oldParticles[i].getPose();
@@ -153,7 +135,7 @@ public class ParticleSet {
                     double angle = p.getHeading();
 
                     // Create a new instance of the particle and set its weight
-                    particles[count] = new Particle(context, floorplan,  new Pose(x, y, angle));
+                    particles[count] = new Particle(context, floorplan, new Pose(x, y, angle));
                     particles[count++].setWeight(1);
                 }
             }
@@ -177,7 +159,7 @@ public class ParticleSet {
      * @param move the move to apply
      */
     public void applyMove(Move move) {
-        for (int i = 0; i < numParticles; i++) {
+        for (int i = 0; i < particles.length; i++) {
             particles[i].applyMove(move, distanceNoiseFactor, angleNoiseFactor);
         }
     }
@@ -232,8 +214,8 @@ public class ParticleSet {
         varH -= (estimatedAngle * estimatedAngle);
 
 //        // Normalize angle
-        while (estimatedAngle > 180) estimatedAngle -= 360;
-        while (estimatedAngle < -180) estimatedAngle += 360;
+        //while (estimatedAngle > 180) estimatedAngle -= 360;
+        //while (estimatedAngle < -180) estimatedAngle += 360;
 
         _x = estimatedX;
         _y = estimatedY;
@@ -241,13 +223,13 @@ public class ParticleSet {
     }
 
 
-    public Pose getAveragePose(){
+    public Pose getAveragePose() {
         float x = 0;
         float y = 0;
 
         float xH = 0f, yH = 0f;
 
-        for(Particle p : particles){
+        for (Particle p : particles) {
             x += p.getPose().getX();
             y += p.getPose().getY();
 
@@ -255,7 +237,7 @@ public class ParticleSet {
             yH += Math.sin(Math.toRadians(p.getPose().getHeading()));
         }
 
-        return new Pose((int)x/numParticles(), y/numParticles(),Math.atan2(yH, xH));
+        return new Pose((int) x / particles.length, y / particles.length, Math.atan2(yH, xH));
     }
 
     /**
@@ -331,7 +313,7 @@ public class ParticleSet {
         return (float) Math.sqrt(varH);
     }
 
-    public void updateParticles(Move move){
+    public void updateParticles(Move move) {
         applyMove(move);
         calculateWeights(floorplan);
         resample();

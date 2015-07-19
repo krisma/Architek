@@ -1,29 +1,30 @@
 package com.example.krisma.architek;
 
-import android.app.FragmentManager;
+import android.app.Service;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-
 import android.graphics.Point;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.view.Display;
-import android.view.Gravity;
 import android.view.View;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.example.krisma.architek.trackers.HeadingListener;
 import com.example.krisma.architek.trackers.LocationTracker;
 import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.getbase.floatingactionbutton.FloatingActionsMenu;
@@ -57,10 +58,9 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
 import java.util.Map;
 
-public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerClickListener, LocationSource.OnLocationChangedListener {
+public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerClickListener, LocationSource.OnLocationChangedListener, HeadingListener {
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
 
     private GroundOverlay groundOverlay;
@@ -76,7 +76,8 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private Map<LatLng, GroundOverlay> overlaysHash = new HashMap<>();
     private boolean firstLoad = true;
     AsyncDrawNextFloor drawNextFloorAsyncTask;
-    private Marker marker;
+    private JSONObject currentBuilding;
+
 
     // UI ELEMENTS
     private FloatingActionButton editButton;
@@ -84,6 +85,8 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private FloatingActionButton mMinusOneButton;
     private FloatingActionButton mPlusOneButton;
     private TextView floorView;
+    private RelativeLayout mapLayout;
+    private Marker marker;
 
     private void resetOverlay() {
 
@@ -118,9 +121,9 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         return new LatLngBounds(sw, ne);
     }
 
-    private void drawOverlaysNearby(){
+    private void drawOverlaysNearby() {
         Log.i("Call", "Called: drawOverlaysNearby");
-        for (int i=0; i<coordinatesHash.length(); i++) {
+        for (int i = 0; i < coordinatesHash.length(); i++) {
             JSONObject thisBuilding = null;
             try {
                 thisBuilding = coordinatesHash.getJSONObject(i);
@@ -128,8 +131,9 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                 e.printStackTrace();
             }
             new AsyncDrawDefaultFloor(thisBuilding).execute();
-        };
-    };
+        }
+        ;
+    }
 
     private void setFocusBuilding(LatLng location) {
         Log.i("Call", "Called: setFocusBuilding");
@@ -176,8 +180,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         }
     }
 
-    ;
-
     private LatLng detectOverlay(LatLng currentLocation) {
         Log.i("Called: detectOverlay", "Called: detectOverlay");
         for (int i = 0; i < coordinatesHash.length(); i++) {
@@ -205,8 +207,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                         (currentLocation.longitude - lastPosition.longitude)) > 0.0005;
     }
 
-
-
     private boolean lastMoveFarFarEnough(LatLng currentLocation) {
         return Math.sqrt((currentLocation.latitude - lastPosition.latitude) *
                 (currentLocation.latitude - lastPosition.latitude) +
@@ -233,7 +233,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
 
     }
 
-
     public String convertStreamToString(InputStream is) {
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         StringBuilder sb = new StringBuilder();
@@ -254,73 +253,41 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         return sb.toString();
     }
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
-        setUpMapIfNeeded();
+        Intent i= new Intent(this, DeadReckoning.class);
+        bindService(i, mConnection, Context.BIND_AUTO_CREATE);
+        this.startService(i);
 
+
+        // setup is done in the OnServiceConnected callback to ensure object-pointers
+        setUpMapIfNeeded();
         setupGUI();
 
 
-        setUpMapIfNeeded();
-
-        editButton = (FloatingActionButton) findViewById(R.id.editButton);
-        editButton.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                CameraPosition position = new CameraPosition.Builder().target(new LatLng(37.871223, -122.259060))
-                        .zoom(18f)
-                        .bearing(0)
-                        .tilt(0)
-                        .build();
-                mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
-            }
-        });
     }
 
-    private OverlayImageView oiv;
     private void setupGUI() {
         getActionBar().hide();
 
-        RelativeLayout relativeLayout = (RelativeLayout) findViewById(R.id.mapLayout);
-
-        oiv = new OverlayImageView(this);
-        relativeLayout.addView(oiv);
-
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.wheeler11_edged);
-
-        Display display = getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        int width = size.x;
-        int height = size.y;
-
-        double aspect = bitmap.getWidth()/bitmap.getHeight();
-
-        bitmap=Bitmap.createScaledBitmap(bitmap, width,(int) (width * aspect), true);
-
-        oiv.setBitmap(bitmap);
-        oiv.setX(0);
-        oiv.setY(0);
-        oiv.invalidate();
-
+        mapLayout = (RelativeLayout) findViewById(R.id.mapLayout);
+        mapLayout.setDrawingCacheEnabled(true);
 
         //Find the buttons
         mPlusOneButton = (FloatingActionButton) findViewById(R.id.upButton);
-        mMinusOneButton = (FloatingActionButton)  findViewById(R.id.downButton);
+        mMinusOneButton = (FloatingActionButton) findViewById(R.id.downButton);
 
         // Find FloorView
         floorView = (TextView) findViewById(R.id.floorView);
         floorView.setShadowLayer(16, 4, 4, Color.BLACK);
 
-
         mPlusOneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                /*
                 if (currentFloor < currentFloorNumbers) { // TODO: Should not exceed max floors
                     currentFloor++;
 
@@ -328,6 +295,11 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
 
                     onFloorChanged(currentFloor);
                 }
+                */
+                deadReckoning.transitionToIndoor(); // TODO : DEBUGGING
+                mMap.setLocationSource(deadReckoning);
+
+
             }
         });
 
@@ -344,13 +316,36 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         expandMenu = (FloatingActionsMenu) findViewById(R.id.right_menu);
         expandMenu.setSoundEffectsEnabled(true);
 
+        editButton = (FloatingActionButton) findViewById(R.id.editButton);
+        editButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                CameraPosition position = new CameraPosition.Builder().target(new LatLng(37.871223, -122.259060))
+                        .zoom(18f)
+                        .bearing(0)
+                        .tilt(0)
+                        .build();
+                mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+            }
+        });
+
         // TODO: Hide FLoor Buttons
 
 
     }
 
+    public int getColorOnMapFromScreenPosition(Point pos) {
+        mapLayout.buildDrawingCache();
 
-    private void setOverlayImage(int floor){
+        Bitmap bitmap = mapLayout.getDrawingCache();
+
+        int pixel = bitmap.getPixel(pos.x, pos.y);
+
+        return pixel;
+    }
+
+    private void setOverlayImage(int floor) {
         URL url = null;
         try {
             url = new URL(currentBuildingMaps.getJSONObject(floor).getString("map"));
@@ -400,20 +395,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         }
     }
 
-    /**
-     * This is where we can add markers or lines, add listeners or move the camera. In this case, we
-     * just add a marker near Africa.
-     * <p/>
-     * This should only be called once and when we are sure that {@link #mMap} is not null.
-     */
     private void setUpMap() {
-        deadReckoning = new DeadReckoning(this, MapsActivity.this, mMap);
 
         mMap.setMyLocationEnabled(true);
         mMap.setOnCameraChangeListener(cameraListener);
-        mMap.setLocationSource(deadReckoning.getLocationTracker());
-        deadReckoning.getLocationTracker().addListener(this);
-
         mMap.setBuildingsEnabled(true);
         mMap.setIndoorEnabled(true);
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
@@ -472,37 +457,27 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         mMap.setOnMarkerClickListener(this);
     }
 
-    private GoogleMap.OnCameraChangeListener cameraListener = new GoogleMap.OnCameraChangeListener() {
-        @Override
-        public void onCameraChange(CameraPosition cameraPosition) {
-            if (lastMoveFarFarEnough(cameraPosition.target)) {
-                new AsyncUpdateCoordinatesHash(cameraPosition.target).execute();
+    private ServiceConnection mConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            // This is called when the connection with the service has been
+            // established, giving us the service object we can use to
+            // interact with the service.  Because we have bound to a explicit
+            // service that we know is running in our own process, we can
+            // cast its IBinder to a concrete class and directly access it.
+            deadReckoning = ((DeadReckoning.LocalBinder)service).getService();
+            deadReckoning.getHeadingTracker().addListener(MapsActivity.this);
+            deadReckoning.getLocationTracker().addListener(MapsActivity.this);
+            mMap.setLocationSource(deadReckoning.getLocationTracker());
+        }
 
-            }
-
-            if (lastMoveFarEnough(cameraPosition.target)) {
-                if (coordinatesHash != null) {
-                    LatLng tmp = detectOverlay(cameraPosition.target);
-
-                    if (tmp != null) {
-                        setFocusBuilding(tmp);
-                    } else {
-                        // TODO: Hide FLoor Buttons
-                    }
-
-                }
-
-            }
-
+        public void onServiceDisconnected(ComponentName className) {
+            // This is called when the connection with the service has been
+            // unexpectedly disconnected -- that is, its process crashed.
+            // Because it is running in our same process, we should never
+            // see this happen.
+            deadReckoning = null;
         }
     };
-
-
-    public int getCurrentOverlayId() {
-        return currentOverlayId;
-    }
-
-    private JSONObject currentBuilding;
 
     public void onFloorChanged(int currentFloor) {
         this.currentFloor = currentFloor;
@@ -510,25 +485,12 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         LocalBroadcastManager.getInstance(MapsActivity.this).sendBroadcast(new Intent(LocationTracker.TRANSITION_ACTION));
     }
 
-    public void overlayCurrentFloor(){
-        if(drawNextFloorAsyncTask != null && !drawNextFloorAsyncTask.isCancelled()){
+    public void overlayCurrentFloor() {
+        if (drawNextFloorAsyncTask != null && !drawNextFloorAsyncTask.isCancelled()) {
             drawNextFloorAsyncTask.cancel(true);
         }
         drawNextFloorAsyncTask = new AsyncDrawNextFloor();
         drawNextFloorAsyncTask.execute();
-    }
-
-    @Override
-    public boolean onMarkerClick(Marker marker) {
-        if (marker != null) {
-            marker.remove();
-            expandMenu.collapse();
-        }
-        return true;
-    }
-
-    public OverlayImageView getOiv() {
-        return oiv;
     }
 
     private class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
@@ -546,7 +508,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             try {
                 url = new URL(thisBuilding.getString("defaultfloor"));
                 bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream());
-                floorplans.put(url,bmp);
+                floorplans.put(url, bmp);
                 currentOverlayURL = url;
 
             } catch (MalformedURLException e) {
@@ -662,12 +624,9 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         }
     }
 
-public JSONObject getCurrentBuilding(){
-    return currentBuilding;
-}
-
-
-    //region Dead Reckoning
+    public JSONObject getCurrentBuilding() {
+        return currentBuilding;
+    }
 
     HashMap<URL, Bitmap> floorplans = new HashMap<>();
 
@@ -681,32 +640,10 @@ public JSONObject getCurrentBuilding(){
         return groundOverlay;
     }
 
-    public URL getCurrentOverlayURL(){
+    public URL getCurrentOverlayURL() {
         return currentOverlayURL;
     }
 
-
-    @Override
-    public void onLocationChanged(Location location) {
-        currentLocation = location;
-
-        if(lastLocation == null){
-            lastLocation = currentLocation;
-        }
-
-        if(currentLocation.distanceTo(lastLocation) > 1){
-            lastLocation = currentLocation;
-            pointsOnRoute.add(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()));
-
-
-            PolylineOptions options = new PolylineOptions().width(5).color(Color.BLUE);
-            for (int z = 0; z < pointsOnRoute.size(); z++) {
-                LatLng point = pointsOnRoute.get(z);
-                options.add(point);
-            }
-            line = mMap.addPolyline(options);
-        }
-    }
 
     private class AsyncDrawNextFloor extends AsyncTask<String, Void, Bitmap> {
 
@@ -730,7 +667,7 @@ public JSONObject getCurrentBuilding(){
 
         @Override
         protected void onPostExecute(Bitmap result) {
-            if(result != null) {
+            if (result != null) {
                 GroundOverlay toSetImage = overlaysHash.get(currentBuildingLocation);
                 toSetImage.setImage(BitmapDescriptorFactory.fromBitmap(result));
             }
@@ -744,4 +681,92 @@ public JSONObject getCurrentBuilding(){
         protected void onProgressUpdate(Void... values) {
         }
     }
+
+
+    public void transtitionToOutdoor(){
+        deadReckoning.setParticleSet(null);
+        mMap.setLocationSource(deadReckoning.getLocationTracker());
+    }
+
+    //region Map Listeners
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        if (marker != null) {
+            marker.remove();
+            expandMenu.collapse();
+        }
+        return true;
+    }
+
+    private long lastOverlayDetect = System.currentTimeMillis();
+    private GoogleMap.OnCameraChangeListener cameraListener = new GoogleMap.OnCameraChangeListener() {
+        @Override
+        public void onCameraChange(CameraPosition cameraPosition) {
+            if (lastMoveFarFarEnough(cameraPosition.target)) {
+                new AsyncUpdateCoordinatesHash(cameraPosition.target).execute();
+
+            }
+
+            if (lastMoveFarEnough(cameraPosition.target)) {
+                if (coordinatesHash != null && System.currentTimeMillis() > lastOverlayDetect + 4000) {
+                    lastOverlayDetect = System.currentTimeMillis();
+                    LatLng tmp = detectOverlay(cameraPosition.target);
+
+                    if (tmp != null) {
+                        setFocusBuilding(tmp);
+                    } else {
+                        // TODO: Hide FLoor Buttons
+                    }
+
+                }
+
+            }
+
+        }
+    };
+
+    //endregion
+
+    //region Tracker Listeners
+    @Override
+    public void onLocationChanged(Location location) {
+        currentLocation = location;
+
+        if (lastLocation == null) {
+            lastLocation = currentLocation;
+        }
+
+        if (currentLocation.distanceTo(lastLocation) > 1) {
+            lastLocation = currentLocation;
+            pointsOnRoute.add(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()));
+
+
+            PolylineOptions options = new PolylineOptions().width(5).color(Color.BLUE);
+            for (int z = 0; z < pointsOnRoute.size(); z++) {
+                LatLng point = pointsOnRoute.get(z);
+                options.add(point);
+            }
+            line = mMap.addPolyline(options);
+        }
+    }
+
+    @Override
+    public void onHeadingChange(float heading) {
+
+        if (mMap == null) return;
+
+        Location loc = mMap.getMyLocation();
+
+
+        if (loc == null) return;
+
+        CameraPosition position = new CameraPosition.Builder().target(new LatLng(loc.getLatitude(), loc.getLongitude()))
+                .zoom(18f)
+                .bearing(heading)
+                .tilt(0)
+                .build();
+
+        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+    }
+    //endregion
 }

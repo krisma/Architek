@@ -16,11 +16,9 @@ import java.util.ArrayList;
  */
 public class MovementTracker implements SensorEventListener {
 
-    private final DeadReckoning deadReckoning;
     private ArrayList<MoveListener> listeners = new ArrayList<>();
 
-    public MovementTracker(DeadReckoning deadReckoning){
-        this.deadReckoning = deadReckoning;
+    public MovementTracker(){
     }
 
     public boolean register(SensorManager sensorManager) {
@@ -29,7 +27,7 @@ public class MovementTracker implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        float distance = getStepLength(184) / 5;
+        float distance = getStepLength(184) / 2;
         updateListeners(distance);
     }
 

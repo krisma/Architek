@@ -42,7 +42,6 @@ public class LocationTracker implements LocationListener, LocationSource {
 
     // Declaring a Location Manager
     protected LocationManager locationManager;
-    private Location currentLocation;
 
     public LocationTracker(Context context) {
         this.mContext = context;

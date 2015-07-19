@@ -5,6 +5,6 @@ package com.example.krisma.architek.trackers;
  */
 public interface HeadingListener {
 
-    void onHeadingChange(double heading);
+    void onHeadingChange(float heading);
 
 }
