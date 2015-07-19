@@ -86,7 +86,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private FloatingActionButton mPlusOneButton;
     private TextView floorView;
     private RelativeLayout mapLayout;
-    private Marker marker;
 
     private void resetOverlay() {
 
@@ -728,8 +727,17 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     //endregion
 
     //region Tracker Listeners
+    Marker marker;
     @Override
     public void onLocationChanged(Location location) {
+
+        if(location.getProvider().equals("DEAD_RECKONING")){
+            marker = mMap.addMarker(new MarkerOptions()
+                    .position(new LatLng(location.getLatitude(), location.getLongitude()))
+                    .title("DR"));
+        }
+
+
         currentLocation = location;
 
         if (lastLocation == null) {
@@ -766,7 +774,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                 .tilt(0)
                 .build();
 
-        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+        //mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
     }
     //endregion
 }

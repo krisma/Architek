@@ -1,21 +1,29 @@
 package com.example.krisma.architek.trackers;
 
+import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
+import android.support.v4.content.ContextCompat;
 
 import com.example.krisma.architek.utils.EvictingQueue;
 
 import adr.structures.Vector3D;
 
 public class AccelerometerTracker implements SensorEventListener {
+    private final Sensor sensor;
+    private SensorManager sensorManager;
     private Vector3D accelerationVector;
     private EvictingQueue<Vector3D> data = new EvictingQueue<>(512);
     private float lowPassFilterValue = 0.6f;
 
-    public AccelerometerTracker() {
+    public AccelerometerTracker(Context context) {
+        sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+
+        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST, new Handler());
     }
 
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -57,13 +65,6 @@ public class AccelerometerTracker implements SensorEventListener {
         data.add(accelerationVector);
 
         AccelerometerTracker.accel = sensorEvent.values.clone();
-    }
-
-    public boolean register(SensorManager sensorManager) {
-        return sensorManager.registerListener(this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_FASTEST,
-                new Handler());
     }
 
     public void unregister(SensorManager sensorManager) {

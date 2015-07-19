@@ -13,6 +13,7 @@ import com.example.krisma.architek.utils.EvictingQueue;
 import com.google.android.gms.maps.LocationSource;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by smp on 14/07/15.
@@ -36,9 +37,24 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
         // Fetch Sensor Manager
         mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 
+        List<Sensor> supportedSensors = mSensorManager.getSensorList(Sensor.TYPE_ALL);
+
         // Fetch Sensors
+
         accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+
+        if(supportedSensors.contains(accelerometer)){
+            Log.d("Sensors", "Accelerometer Supported!");
+        } else {
+            Log.d("Sensors", "Accelerometer NOT Supported!");
+        }
+
+        if(supportedSensors.contains(magnetometer)){
+            Log.d("Sensors", "Magnetometer Supported!");
+        } else {
+            Log.d("Sensors", "Magnetometer NOT Supported!");
+        }
 
         // Register Sensors
         mSensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);

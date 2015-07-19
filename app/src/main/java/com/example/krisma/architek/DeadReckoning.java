@@ -96,13 +96,11 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     }
 
     private void setupAccelerometer() {
-        accelerometerTracker = new AccelerometerTracker();
-        accelerometerTracker.register(sensorManager);
+        accelerometerTracker = new AccelerometerTracker(mContext);
     }
 
     private void setupMovementTracker() {
-        movementTracker = new MovementTracker();
-        movementTracker.register(sensorManager);
+        movementTracker = new MovementTracker(mContext);
         movementTracker.addMoveListener(this);
     }
 
@@ -167,10 +165,12 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
 
     public void transitionToIndoor() {
         Location location = locationTracker.getCurrentLocation();
-
+        Log.d("Transition", "Started");
         if (location == null /*|| mapsActivity.getCurrentOverlayURL() == null*/) {
             retryTransition();
+            Log.d("Transition", "Null");
         } else {
+            Log.d("Transition", "In progress");
             LatLng loc = new LatLng(location.getLatitude(), location.getLongitude());
 
             BitmapFactory.Options options = new BitmapFactory.Options();
@@ -205,7 +205,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
 
 
             // Initialise Particle Set on user location on Image
-            particleSet = new ParticleSet(mContext, 1000, bitmap, startPoint.x, startPoint.y);
+            particleSet = new ParticleSet(mContext, 500, bitmap, startPoint.x, startPoint.y);
         }
     }
 

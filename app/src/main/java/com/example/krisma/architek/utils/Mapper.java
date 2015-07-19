@@ -62,7 +62,6 @@ public class Mapper {
         double pos_iso_lat = pos.latitude;
         double pos_iso_lng = pos.longitude *  lng_to_lat_scale;
 
-        // TODO: Scale Lat/Lng to be equal
         double x = lat_lng_to_point_a * pos_iso_lng + lat_lng_to_point_b * pos_iso_lat + lat_lng_to_point_c;
         double y = lat_lng_to_point_b * pos_iso_lng - lat_lng_to_point_a * pos_iso_lat + lat_lng_to_point_d;
 
@@ -92,10 +91,34 @@ public class Mapper {
         // scale to isometric units
         double lng_to_lat_scale = 1.409;
 
-        double pos_iso_lat = pos.y;
-        double pos_iso_lng = pos.x /  lng_to_lat_scale;
+        double pos_iso_lat = y;
+        double pos_iso_lng = x /  lng_to_lat_scale;
 
         return new LatLng(pos_iso_lat, pos_iso_lng);
+    }
+
+    /***
+     * Another Method as seen on http://www.geomidpoint.com/example.html
+     */
+
+    public double[] forward(LatLng latLng){
+        double x = Math.cos(latLng.latitude * Math.PI/180) * Math.cos(latLng.longitude * Math.PI/180);
+        double y = Math.cos(latLng.latitude * Math.PI/180) * Math.sin(latLng.longitude * Math.PI/180);
+        double z = Math.sin(latLng.latitude * Math.PI/180);
+
+        return new double[]{x,y,z};
+    }
+
+    public LatLng inverse(double[] xyz){
+        double x = xyz[0];
+        double y = xyz[1];
+        double z = xyz[2];
+
+        double lat = Math.atan2(y,x) * (180/Math.PI);
+        double hyp = Math.sqrt(x * x + y * y);
+        double lng = Math.atan2(z,hyp) * (180/Math.PI);
+
+        return new LatLng(lat,lng);
     }
 
 }
