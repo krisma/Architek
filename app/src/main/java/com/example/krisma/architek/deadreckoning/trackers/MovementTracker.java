@@ -1,4 +1,4 @@
-package com.example.krisma.architek.trackers;
+package com.example.krisma.architek.deadreckoning.trackers;
 
 import android.content.Context;
 import android.hardware.Sensor;
@@ -8,7 +8,8 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 import android.util.Log;
 
-import com.example.krisma.architek.particlefilter.Move;
+import com.example.krisma.architek.deadreckoning.particlefilter.Move;
+import com.example.krisma.architek.deadreckoning.trackers.listeners.MoveListener;
 
 import java.util.ArrayList;
 import java.util.List;

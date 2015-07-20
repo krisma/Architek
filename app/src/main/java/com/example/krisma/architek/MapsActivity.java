@@ -22,8 +22,10 @@ import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.example.krisma.architek.trackers.HeadingListener;
-import com.example.krisma.architek.trackers.LocationTracker;
+import com.example.krisma.architek.deadreckoning.DeadReckoning;
+import com.example.krisma.architek.deadreckoning.trackers.listeners.FloorListener;
+import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
+import com.example.krisma.architek.deadreckoning.trackers.LocationTracker;
 import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.getbase.floatingactionbutton.FloatingActionsMenu;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -34,6 +36,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
+import com.google.android.gms.maps.model.IndoorBuilding;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -60,7 +63,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerClickListener, LocationSource.OnLocationChangedListener, HeadingListener {
+public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerClickListener, LocationSource.OnLocationChangedListener, HeadingListener, FloorListener {
 
     private static final Logger log = LoggerFactory.getLogger(MapsActivity.class);
 
@@ -168,6 +171,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             currentFloorNumbers = currentBuildingMaps.length();
             currentBuildingLocation = location;
 
+            transitionToIndoor();
             // TODO: Show FLoor Buttons
 
 
@@ -289,7 +293,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         mPlusOneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                /*
+
                 if (currentFloor < currentFloorNumbers) { // TODO: Should not exceed max floors
                     currentFloor++;
 
@@ -297,13 +301,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
 
                     onFloorChanged(currentFloor);
                 }
-                */
-                deadReckoning.transitionToIndoor(); // TODO : DEBUGGING
-                mMap.setLocationSource(deadReckoning);
-
-
-
-
             }
         });
 
@@ -551,6 +548,8 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                 groundOverlay = mMap.addGroundOverlay(overlayOptions);
                 groundOverlay.setBearing(bearing);
 
+                transitionToIndoor();
+
                 deadReckoning.setGroundOverlay(groundOverlay);
                 currentBuilding = thisBuilding;
 
@@ -683,6 +682,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             if (result != null) {
                 GroundOverlay toSetImage = overlaysHash.get(currentBuildingLocation);
                 toSetImage.setImage(BitmapDescriptorFactory.fromBitmap(result));
+                transitionToIndoor();
             }
         }
 
@@ -695,6 +695,11 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         }
     }
 
+
+    public void transitionToIndoor(){
+        deadReckoning.transitionToIndoor();
+        mMap.setLocationSource(deadReckoning);
+    }
 
     public void transtitionToOutdoor(){
         deadReckoning.setParticleSet(null);
@@ -788,7 +793,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                 .tilt(0)
                 .build();
 
-        //mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
     }
     //endregion
 }

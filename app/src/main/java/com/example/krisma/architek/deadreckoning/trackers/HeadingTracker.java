@@ -1,4 +1,4 @@
-package com.example.krisma.architek.trackers;
+package com.example.krisma.architek.deadreckoning.trackers;
 
 import android.content.Context;
 import android.hardware.GeomagneticField;
@@ -9,7 +9,8 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.util.Log;
 
-import com.example.krisma.architek.utils.EvictingQueue;
+import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
+import com.example.krisma.architek.deadreckoning.utils.EvictingQueue;
 import com.google.android.gms.maps.LocationSource;
 
 import java.util.ArrayList;

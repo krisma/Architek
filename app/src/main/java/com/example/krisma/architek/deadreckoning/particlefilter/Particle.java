@@ -1,11 +1,8 @@
-package com.example.krisma.architek.particlefilter;
+package com.example.krisma.architek.deadreckoning.particlefilter;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.util.Log;
-
-import com.example.krisma.architek.R;
 
 import java.util.ArrayList;
 import java.util.List;

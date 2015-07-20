@@ -1,7 +1,4 @@
-package com.example.krisma.architek.particlefilter;
-
-import android.location.Location;
-import android.location.LocationManager;
+package com.example.krisma.architek.deadreckoning.particlefilter;
 
 /**
  * Created by smp on 14/07/15.

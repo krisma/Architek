@@ -1,11 +1,7 @@
-package com.example.krisma.architek.utils;
+package com.example.krisma.architek.deadreckoning.utils;
 
-import android.graphics.Bitmap;
 import android.graphics.Point;
-import android.util.Log;
 
-import com.example.krisma.architek.DeadReckoning;
-import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.LatLng;
 
 import org.slf4j.Logger;
@@ -23,18 +19,9 @@ public class Mapper {
 
     // Common Variables
     private final Point iCenter;
-    private final Point iNW;
     private final LatLng oCenter;
     private final LatLng oNW;
     private final float bearing;
-    private final Bitmap bitmap;
-
-
-    // Variables used to map LatLng to a Point
-    private double ll_to_point_a;
-    private double ll_to_point_b;
-    private double ll_to_point_c;
-    private double ll_to_point_d;
 
     // Variables used to map a Point to LatLng
     private double a;
@@ -42,13 +29,11 @@ public class Mapper {
     private double c;
     private double d;
 
-    public Mapper(Point iCenter, Point iNW, LatLng oCenter, LatLng oNW, Bitmap bitmap, float bearing){
+    public Mapper(Point iCenter, LatLng oCenter, LatLng oNW, float bearing){
         this.iCenter = iCenter;
-        this.iNW = iNW;
         this.oCenter = oCenter;
         this.oNW = oNW;
         this.bearing = bearing;
-        this.bitmap = bitmap;
 
         solveTransformation();
     }
@@ -62,7 +47,7 @@ public class Mapper {
 
         int xOffset = 0;
         int yOffset = 0;
-        
+
         return new Point((int) x - xOffset,(int) y - yOffset);
     }
 
@@ -90,8 +75,6 @@ public class Mapper {
         c = v.get(2,0);
         d = v.get(3,0);
     }
-
-
 
     public LatLng pointToLatLng(Point pos){
 

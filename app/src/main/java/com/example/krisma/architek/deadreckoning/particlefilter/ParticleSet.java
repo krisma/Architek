@@ -1,4 +1,4 @@
-package com.example.krisma.architek.particlefilter;
+package com.example.krisma.architek.deadreckoning.particlefilter;
 
 import android.content.Context;
 import android.graphics.Bitmap;

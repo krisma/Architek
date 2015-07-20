@@ -1,4 +1,4 @@
-package com.example.krisma.architek.trackers;
+package com.example.krisma.architek.deadreckoning.trackers;
 
 import android.content.Context;
 import android.content.Intent;

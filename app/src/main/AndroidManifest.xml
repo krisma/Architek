@@ -51,7 +51,7 @@
         </activity>
 
         <service
-            android:name=".DeadReckoning"
+            android:name=".deadreckoning.DeadReckoning"
             android:icon="@drawable/icon"
             android:label="DeadReckoning"
             >

@@ -1,4 +1,4 @@
-package com.example.krisma.architek;
+package com.example.krisma.architek.deadreckoning.utils;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -6,15 +6,13 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.ImageView;
 
-import com.example.krisma.architek.particlefilter.Particle;
-import com.example.krisma.architek.particlefilter.ParticleSet;
-import com.example.krisma.architek.particlefilter.Pose;
-import com.google.android.gms.maps.model.LatLng;
+import com.example.krisma.architek.deadreckoning.particlefilter.Particle;
+import com.example.krisma.architek.deadreckoning.particlefilter.ParticleSet;
+import com.example.krisma.architek.deadreckoning.particlefilter.Pose;
 
 import java.util.ArrayList;
 import java.util.List;

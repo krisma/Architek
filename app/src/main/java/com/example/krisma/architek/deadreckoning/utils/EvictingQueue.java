@@ -1,4 +1,4 @@
-package com.example.krisma.architek.utils;
+package com.example.krisma.architek.deadreckoning.utils;
 
 import java.util.LinkedList;
 
