@@ -40,6 +40,7 @@ public class Particle {
         blockingColors.add(Color.GRAY);
         blockingColors.add(Color.DKGRAY);
         blockingColors.add(Color.TRANSPARENT);
+        blockingColors.add(Color.rgb(0,255,162));
     }
 
     /**

@@ -1,8 +1,15 @@
 package com.example.krisma.architek.utils;
 
+import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.util.Log;
 
+import com.example.krisma.architek.DeadReckoning;
+import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.LatLng;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import Jama.Matrix;
 
@@ -11,114 +18,111 @@ import Jama.Matrix;
  */
 public class Mapper {
 
+    private static final Logger log = LoggerFactory.getLogger(Mapper.class);
+
+
     // Common Variables
     private final Point iCenter;
     private final Point iNW;
     private final LatLng oCenter;
     private final LatLng oNW;
+    private final float bearing;
+    private final Bitmap bitmap;
+
 
     // Variables used to map LatLng to a Point
-    double lat_lng_to_point_a;
-    double lat_lng_to_point_b;
-    double lat_lng_to_point_c;
-    double lat_lng_to_point_d;
+    private double ll_to_point_a;
+    private double ll_to_point_b;
+    private double ll_to_point_c;
+    private double ll_to_point_d;
 
     // Variables used to map a Point to LatLng
-    private double point_to_lat_lng_a;
-    private double point_to_lat_lng_b;
-    private double point_to_lat_lng_c;
-    private double point_to_lat_lng_d;
+    private double a;
+    private double b;
+    private double c;
+    private double d;
 
-    public Mapper(Point iCenter, Point iNW, LatLng oCenter, LatLng oNW){
+    public Mapper(Point iCenter, Point iNW, LatLng oCenter, LatLng oNW, Bitmap bitmap, float bearing){
         this.iCenter = iCenter;
         this.iNW = iNW;
         this.oCenter = oCenter;
         this.oNW = oNW;
+        this.bearing = bearing;
+        this.bitmap = bitmap;
 
-        solveTransformationLatToPoint();
-        solveTransformationPointToLat();
-    }
-
-    private void solveTransformationLatToPoint(){
-        double[] uArray = {oCenter.longitude,oCenter.latitude,oNW.longitude,oNW.latitude};
-        Matrix u = new Matrix(uArray, 4);
-
-        double[][] array = {{iCenter.x,iCenter.y,1, 0},{-iCenter.y,iCenter.x,0,1},{iNW.x,iNW.y,1, 0},{-iNW.y,iNW.x,0,1}};
-        Matrix m = new Matrix(array);
-
-        Matrix v = m.inverse().times(u);
-
-        lat_lng_to_point_a = v.get(0,0);
-        lat_lng_to_point_b = v.get(1,0);
-        lat_lng_to_point_c = v.get(2,0);
-        lat_lng_to_point_d = v.get(3,0);
+        solveTransformation();
     }
 
     public Point latlngToPoint( LatLng pos){
+        double lat = pos.latitude;
+        double lng = pos.longitude;
 
-        // scale to isometric units
-        double lng_to_lat_scale = 1.409;
+        double x = a * lng + b * lat + c;
+        double y = b * lng - a * lat + d;
 
-        double pos_iso_lat = pos.latitude;
-        double pos_iso_lng = pos.longitude *  lng_to_lat_scale;
-
-        double x = lat_lng_to_point_a * pos_iso_lng + lat_lng_to_point_b * pos_iso_lat + lat_lng_to_point_c;
-        double y = lat_lng_to_point_b * pos_iso_lng - lat_lng_to_point_a * pos_iso_lat + lat_lng_to_point_d;
-
-        return new Point((int)x,(int)y);
+        int xOffset = 0;
+        int yOffset = 0;
+        
+        return new Point((int) x - xOffset,(int) y - yOffset);
     }
 
-    private void solveTransformationPointToLat(){
-        double[] uArray = {iCenter.x,iCenter.y,iNW.x,iNW.y};
+    private void solveTransformation(){
+        double[] uArray = {
+                0,
+                0,
+                iCenter.x,
+                iCenter.y
+        };
         Matrix u = new Matrix(uArray, 4);
 
-        double[][] array = {{oCenter.longitude,oCenter.latitude,1, 0},{-oCenter.latitude,oCenter.longitude,0,1},{oNW.longitude,oNW.latitude,1, 0},{-oNW.latitude,oNW.longitude,0,1}};
+        double[][] array = {
+                {oNW.longitude,     oNW.latitude,       1,  0},
+                {-oNW.latitude,     oNW.longitude,      0,  1},
+                {oCenter.longitude, oCenter.latitude,   1,  0},
+                {-oCenter.latitude, oCenter.longitude,  0,  1}
+        };
         Matrix m = new Matrix(array);
 
         Matrix v = m.inverse().times(u);
 
-        point_to_lat_lng_a = v.get(0,0);
-        point_to_lat_lng_b = v.get(1,0);
-        point_to_lat_lng_c = v.get(2,0);
-        point_to_lat_lng_d = v.get(3,0);
+        a = v.get(0,0);
+        b = v.get(1,0);
+        c = v.get(2,0);
+        d = v.get(3,0);
     }
+
+
 
     public LatLng pointToLatLng(Point pos){
 
-        double x = point_to_lat_lng_a * pos.x + point_to_lat_lng_b * pos.y + point_to_lat_lng_c;
-        double y = point_to_lat_lng_b * pos.x - point_to_lat_lng_a * pos.y + point_to_lat_lng_d;
+        double x = pos.x;
+        double y = pos.y;
 
-        // scale to isometric units
-        double lng_to_lat_scale = 1.409;
+        double pos_x = (a * x + b * y - b * d - a * c) / (a * a + b * b) ;
+        double pos_y = (b * x - a * y - b * c + a * d) / (a * a + b * b) ;
 
-        double pos_iso_lat = y;
-        double pos_iso_lng = x /  lng_to_lat_scale;
-
-        return new LatLng(pos_iso_lat, pos_iso_lng);
+        return new LatLng(pos_y, pos_x);
     }
 
-    /***
-     * Another Method as seen on http://www.geomidpoint.com/example.html
-     */
-
-    public double[] forward(LatLng latLng){
-        double x = Math.cos(latLng.latitude * Math.PI/180) * Math.cos(latLng.longitude * Math.PI/180);
-        double y = Math.cos(latLng.latitude * Math.PI/180) * Math.sin(latLng.longitude * Math.PI/180);
-        double z = Math.sin(latLng.latitude * Math.PI/180);
-
-        return new double[]{x,y,z};
+    public double rotateLatitudeAround(double lat, double angle, LatLng center) {
+        double latitude = center.latitude + (Math.cos(Math.toRadians(angle)) * (lat - center.latitude) - Math.sin(Math.toRadians(angle)) * (lat - center.latitude));
+        return latitude;
     }
 
-    public LatLng inverse(double[] xyz){
-        double x = xyz[0];
-        double y = xyz[1];
-        double z = xyz[2];
+    public double rotateLongitudeAround(double lon, double angle, LatLng center) {
+        double longitude = center.longitude + (Math.sin(Math.toRadians(angle)) * (lon - center.longitude) + Math.cos(Math.toRadians(angle)) * (lon - center.longitude));
+        return longitude;
+    }
 
-        double lat = Math.atan2(y,x) * (180/Math.PI);
-        double hyp = Math.sqrt(x * x + y * y);
-        double lng = Math.atan2(z,hyp) * (180/Math.PI);
+    public Point latLngToRotatedPoint(LatLng loc){
+        LatLng rotatedLoc = new LatLng(rotateLatitudeAround(loc.latitude, bearing, oCenter), rotateLongitudeAround(loc.longitude, bearing, oCenter));
+        return latlngToPoint(rotatedLoc);
+    }
 
-        return new LatLng(lat,lng);
+    public LatLng pointToRotatedLatLng(Point pos){
+        LatLng loc = pointToLatLng(pos);
+        LatLng rotatedLoc = new LatLng(rotateLatitudeAround(loc.latitude, -bearing, oCenter), rotateLongitudeAround(loc.longitude, -bearing, oCenter));
+        return rotatedLoc;
     }
 
 }

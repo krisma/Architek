@@ -1,6 +1,5 @@
 package com.example.krisma.architek;
 
-import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -22,7 +21,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.krisma.architek.trackers.HeadingListener;
 import com.example.krisma.architek.trackers.LocationTracker;
@@ -46,6 +44,8 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -61,6 +61,9 @@ import java.util.List;
 import java.util.Map;
 
 public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerClickListener, LocationSource.OnLocationChangedListener, HeadingListener {
+
+    private static final Logger log = LoggerFactory.getLogger(MapsActivity.class);
+
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
 
     private GroundOverlay groundOverlay;
@@ -299,6 +302,8 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                 mMap.setLocationSource(deadReckoning);
 
 
+
+
             }
         });
 
@@ -330,7 +335,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         });
 
         // TODO: Hide FLoor Buttons
-
 
     }
 
@@ -464,6 +468,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             // service that we know is running in our own process, we can
             // cast its IBinder to a concrete class and directly access it.
             deadReckoning = ((DeadReckoning.LocalBinder)service).getService();
+            deadReckoning.setMapsActivity(MapsActivity.this);
             deadReckoning.getHeadingTracker().addListener(MapsActivity.this);
             deadReckoning.getLocationTracker().addListener(MapsActivity.this);
             mMap.setLocationSource(deadReckoning.getLocationTracker());
@@ -492,6 +497,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         drawNextFloorAsyncTask.execute();
     }
 
+    public GoogleMap getMmap() {
+        return mMap;
+    }
+
     private class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
 
         private JSONObject thisBuilding = null;
@@ -507,6 +516,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             try {
                 url = new URL(thisBuilding.getString("defaultfloor"));
                 bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream());
+                //bmp = BitmapFactory.decodeResource(getResources(), R.drawable.wheeler11_edged_test_coords);
                 floorplans.put(url, bmp);
                 currentOverlayURL = url;
 
@@ -531,13 +541,17 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                 Float height = new Float(thisBuilding.getDouble("height"));
                 Float width = new Float(thisBuilding.getDouble("width"));
                 Float bearing = new Float(thisBuilding.getDouble("bearing"));
-                Log.d("test", bearing.toString());
+
+                log.info("From Server || H: {}, W: {}, B: {}", height, width, bearing);
+
                 GroundOverlayOptions overlayOptions = new GroundOverlayOptions()
                         .image(BitmapDescriptorFactory.fromBitmap(result))
                         .position(anchor, width, height);
+
                 groundOverlay = mMap.addGroundOverlay(overlayOptions);
                 groundOverlay.setBearing(bearing);
 
+                deadReckoning.setGroundOverlay(groundOverlay);
                 currentBuilding = thisBuilding;
 
                 GroundOverlay temp = mMap.addGroundOverlay(overlayOptions);

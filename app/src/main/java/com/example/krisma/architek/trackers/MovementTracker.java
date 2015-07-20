@@ -21,9 +21,9 @@ public class MovementTracker implements SensorEventListener {
     private boolean useAccelerometer;
     private ArrayList<MoveListener> listeners = new ArrayList<>();
     private Sensor sensor;
-    private float lowPassFilterValue = 0.6f;
+    private float lowPassFilterValue = 0.5f;
 
-    private float   mLimit = 10;
+    private float   mLimit = 5;
     private float   mLastValues[] = new float[3*2];
     private float   mScale[] = new float[2];
 
@@ -58,7 +58,7 @@ public class MovementTracker implements SensorEventListener {
     public void onSensorChanged(SensorEvent event) {
 
         if (!useAccelerometer) {
-            float distance = getStepLength(184) / 2;
+            float distance = getStepLength(184);
             updateListeners(distance);
         } else {
             float xValue = event.values[0];
@@ -96,8 +96,9 @@ public class MovementTracker implements SensorEventListener {
                     boolean isNotContra = (mLastMatch != 1 - extType);
 
                     if (isAlmostAsLargeAsPrevious && isPreviousLargeEnough && isNotContra) {
-                        Log.i("Movement", "step");
-                        updateListeners(getStepLength(184));
+                        float stepLength = getStepLength(184);
+                        Log.i("Movement", "step -- length: " + stepLength + " cm");
+                        updateListeners(stepLength);
                         mLastMatch = extType;
                     }
                     else {
