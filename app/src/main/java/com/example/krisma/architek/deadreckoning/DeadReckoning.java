@@ -1,5 +1,6 @@
 package com.example.krisma.architek.deadreckoning;
 
+import android.app.Activity;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -15,15 +16,16 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.example.krisma.architek.DebugActivity;
 import com.example.krisma.architek.MapsActivity;
 import com.example.krisma.architek.deadreckoning.particlefilter.Move;
 import com.example.krisma.architek.deadreckoning.particlefilter.ParticleSet;
 import com.example.krisma.architek.deadreckoning.particlefilter.Pose;
-import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
 import com.example.krisma.architek.deadreckoning.trackers.HeadingTracker;
 import com.example.krisma.architek.deadreckoning.trackers.LocationTracker;
-import com.example.krisma.architek.deadreckoning.trackers.listeners.MoveListener;
 import com.example.krisma.architek.deadreckoning.trackers.MovementTracker;
+import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
+import com.example.krisma.architek.deadreckoning.trackers.listeners.MoveListener;
 import com.example.krisma.architek.deadreckoning.utils.Mapper;
 import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.model.GroundOverlay;
@@ -57,7 +59,10 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     private ParticleSet particleSet;
     private HeadingTracker headingTracker;
     private GroundOverlay overlay;
-    private MapsActivity activity;
+    private MapsActivity mapsActivity;
+    private Location drLocation;
+    private DebugActivity debugActivity;
+    private LatLng position;
 
     //endregion
 
@@ -83,6 +88,11 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
         return new LocalBinder();
     }
 
+    public void setPosition(LatLng position) {
+        Point point = mapper.latLngToRotatedPoint(position);
+        particleSet = new ParticleSet(mContext, 1000, mapsActivity.getCurrentOverlayBitmap(), point.x, point.y);
+    }
+
 
     public class LocalBinder extends Binder {
         public DeadReckoning getService() {
@@ -93,8 +103,6 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         mContext = this;
-
-        LocalBroadcastManager.getInstance(mContext).registerReceiver(transitionReceiver, new IntentFilter(LocationTracker.TRANSITION_ACTION));
 
         setupHeadingTracker();
         setupLocationTracker();
@@ -124,38 +132,61 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     @Override
     public void onMove(final Move m) {
 
-        if (particleSet != null) {
-            Move move = m;
-            move.setHeading(heading);
+        //particleSet = debugActivity.getOIV().getParticleSet();
 
-            int tickDistance = 5;
+        if(particleSet == null && DEBUGGING){
+            particleSet = debugActivity.getOIV().getParticleSet();
 
-            float distanceLeft = move.getDistanceTraveled();
-
-            while (distanceLeft - tickDistance > tickDistance) {
-                Move tmp = move;
-                tmp.setDistance(tickDistance);
-                particleSet.updateParticles(tmp);
-                distanceLeft = distanceLeft - tickDistance;
-            }
-
-            Move tmp = move;
-            tmp.setDistance(distanceLeft);
-            particleSet.updateParticles(tmp);
-
-            Log.d("Move", "Moved " + move.getDistanceTraveled() + " in heading: " + move.getHeading());
-
-            // Transform back to Google Map -- Show location on Map by updating onLocationChangedListeners --> MapsActivity included
-            Pose averagePose = particleSet.getAveragePose();
-            LatLng newPos = mapper.pointToRotatedLatLng(new Point((int) averagePose.getY(), (int) averagePose.getX()));
-
-            Location loc = new Location("DEAD_RECKONING");
-            loc.setLatitude(newPos.latitude);
-            loc.setLongitude(newPos.longitude);
-
-            updateListeners(loc);
         }
 
+        if (particleSet != null) {
+            float d = m.getDistanceTraveled();
+            double h = heading;
+
+            Log.d("Move", "Moved " + d + " in heading: " + h);
+
+            int tickDistance = 1;
+
+            while (d - tickDistance > tickDistance) {
+                Move tmp = new Move(d, h);
+                tmp.setDistance(tickDistance);
+                particleSet.updateParticles(tmp);
+                d = d - tickDistance;
+            }
+
+            Move tmp = new Move(d, h);
+            tmp.setDistance(d);
+            particleSet.updateParticles(tmp);
+
+            if(DEBUGGING){
+                debugActivity.getOIV().displayParticles();
+            } else {
+                // Transform back to Google Map -- Show location on Map by updating onLocationChangedListeners --> MapsActivity included
+                Pose averagePose = particleSet.getPose(); // AVERAGE HERE
+                LatLng newPos = mapper.pointToLatLng(new Point((int) averagePose.getX(), (int) averagePose.getY()));
+
+                Location loc = new Location("DEAD_RECKONING");
+                loc.setLatitude(newPos.latitude);
+                loc.setLongitude(newPos.longitude);
+
+                updateListeners(loc);
+
+                //showParticlesOnMap();
+            }
+        }
+    }
+
+    public void showParticlesOnMap(){
+        if(particleSet != null && particleSet.getParticles().length > 0) {
+            List<LatLng> locs = new ArrayList<>();
+            for (int i = 0; i < particleSet.getParticles().length; i++) {
+                Pose p = particleSet.getParticles()[i].getPose();
+                locs.add(mapper.pointToLatLng(new Point((int) p.getX(), (int) p.getY())));
+            }
+            mapsActivity.showParticles(locs);
+        } else {
+            log.warn("showParticlesOnMap error! null or empty particle set.");
+        }
     }
 
     @Override
@@ -172,13 +203,6 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
         new Handler().postDelayed(transitionToIndoorRunnable, 4000);
     }
 
-    BroadcastReceiver transitionReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            transitionToIndoor();
-        }
-    };
-
     private Runnable transitionToIndoorRunnable = new Runnable() {
         @Override
         public void run() {
@@ -186,109 +210,138 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
         }
     };
 
+    boolean indoor = false;
+    boolean DEBUGGING = false;
+
     public void transitionToIndoor() {
-        Location location = locationTracker.getCurrentLocation();
-        Log.d("Transition", "Started");
+        if(DEBUGGING){
 
-        if (location == null || activity.getCurrentOverlayURL() == null) {
-            retryTransition();
-            Log.d("Transition", "Null");
+            // initialization is done in OverlayImageView
+
         } else {
-            Log.d("Transition", "In progress");
-            LatLng loc = new LatLng(location.getLatitude(), location.getLongitude());
 
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            Location location;
 
-            Bitmap bitmap = null;
-            try {
-                bitmap = BitmapFactory.decodeStream(activity.getCurrentOverlayURL().openConnection().getInputStream());
+            if (indoor && drLocation != null) {
+                // already indoor, rely on dead reckoning pos
+                location = drLocation;
+                log.info("Using DR location for transition");
+            } else {
+                location = locationTracker.getCurrentLocation();
+                log.info("Using Fused (GPS) location for transition");
 
-            } catch (Exception e) {
-                e.printStackTrace();
             }
 
-            // Transformation to the Image
-            Point iCenter = new Point(bitmap.getWidth() / 2, bitmap.getHeight() / 2);
-            Point iNW = new Point(0, 0);
+            indoor = true;
+            Log.d("Transition", "Started");
 
-            LatLng oCenter = overlay.getPosition();
-
-            log.info("Overlay Center: {}", oCenter);
-            log.info("SW: {}", overlay.getBounds().southwest);
-
-            JSONObject corners = getCorners(); // SE, NW, NE, SW
-
-            try {
-                LatLng SW = new LatLng(corners.getJSONArray("coordinate1").getDouble(0), corners.getJSONArray("coordinate1").getDouble(1));
-                LatLng NE = new LatLng(corners.getJSONArray("coordinate2").getDouble(0), corners.getJSONArray("coordinate2").getDouble(1));
-                LatLng NW = new LatLng(corners.getJSONArray("coordinate3").getDouble(0), corners.getJSONArray("coordinate3").getDouble(1));
-                LatLng SE = new LatLng(corners.getJSONArray("coordinate4").getDouble(0), corners.getJSONArray("coordinate4").getDouble(1));
-
-                float bearing = overlay.getBearing();
-                mapper = new Mapper(iCenter,oCenter, NW, bearing);
-
-                boolean debugging = false;
-                if(debugging) {
-                    LatLng boundSW = overlay.getBounds().southwest;
-                    LatLng rotatedBoundSW = new LatLng(mapper.rotateLatitudeAround(boundSW.latitude, bearing, oCenter), mapper.rotateLongitudeAround(boundSW.longitude, bearing, oCenter));
-                    LatLng boundNE = overlay.getBounds().northeast;
-                    LatLng rotatedBoundNE = new LatLng(mapper.rotateLatitudeAround(boundNE.latitude, bearing, oCenter), mapper.rotateLongitudeAround(boundNE.longitude, bearing, oCenter));
-
-                    log.info("Overlay Width : {} - Height : {}", overlay.getWidth(), overlay.getHeight());
-
-                    LatLng testCoord = new LatLng(37.871174, -122.258860);
-                    activity.getMmap().addMarker(new MarkerOptions()
-                            .position(testCoord)
-                            .title("Test"));
-
-                    LatLng testCoord2 = new LatLng(37.871528, -122.258858);
-                    activity.getMmap().addMarker(new MarkerOptions()
-                            .position(testCoord2)
-                            .title("Tes2"));
-
-                    log.info("Test Point estimated to {} on image", mapper.latLngToRotatedPoint(testCoord));
-                    log.info("Test Point 2 estimated to {} on image", mapper.latLngToRotatedPoint(testCoord2));
-                    log.info("Center Test {}", mapper.latLngToRotatedPoint(oCenter));
+            if (location == null || mapsActivity.getCurrentOverlayURL() == null || overlay == null) {
+                retryTransition();
+                Log.d("Transition", "Null");
+            } else {
+                Log.d("Transition", "In progress");
+                LatLng loc = new LatLng(location.getLatitude(), location.getLongitude());
 
 
-                    log.info("Bound SW on Map {}", boundSW);
-                    log.info("Rotated Bound SW on Map {}", rotatedBoundSW);
-                    log.info("Bound NE on Map {}", boundNE);
-                    log.info("Rotated Bound NE on Map {}", rotatedBoundNE);
-                    log.info("Rotated North East on Image: {}", mapper.latlngToPoint(rotatedBoundNE));
-                    log.info("Rotated South West on Image: {}", mapper.latlngToPoint(rotatedBoundSW));
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
 
-                    log.info("Corners {}", corners);
-                    log.info("Bearing {}", bearing);
+                Bitmap bitmap = null;
+                try {
+                    bitmap = mapsActivity.getCurrentOverlayBitmap();
 
-                    log.info("Bitmap Width : {} - Height : {}", bitmap.getWidth(), bitmap.getHeight()); // 950 × 800
+                    // Transformation to the Image
+                    Point iCenter = new Point(bitmap.getWidth() / 2, bitmap.getHeight() / 2);
+                    Point iNW = new Point(0, 0);
 
-                    log.info("Center on Map {}", oCenter);
-                    log.info("North West on Map {}", NW);
-                    log.info("North East on Map {}", NE);
-                    log.info("South East on Map {}", SE);
-                    log.info("South West on Map {}", SW);
+                    LatLng oCenter = overlay.getPosition();
 
-                    log.info("Center on Image: {}", mapper.latlngToPoint(oCenter));
-                    log.info("North West on Image: {}", mapper.latlngToPoint(NW));
-                    log.info("North East on Image: {}", mapper.latlngToPoint(NE));
-                    log.info("South East on Image: {}", mapper.latlngToPoint(SE));
-                    log.info("South West on Image: {}", mapper.latlngToPoint(SW));
+                    log.info("Overlay Center: {}", oCenter);
+                    log.info("SW: {}", overlay.getBounds().southwest);
+
+                    JSONObject corners = getCorners(); // SE, NW, NE, SW
+                    log.info("Corners JSON Obj : {}", corners);
+
+                    try {
+                        LatLng C1 = new LatLng(corners.getJSONArray("coordinate1").getDouble(0), corners.getJSONArray("coordinate1").getDouble(1));
+                        LatLng C2 = new LatLng(corners.getJSONArray("coordinate2").getDouble(0), corners.getJSONArray("coordinate2").getDouble(1));
+                        LatLng C3 = new LatLng(corners.getJSONArray("coordinate3").getDouble(0), corners.getJSONArray("coordinate3").getDouble(1));
+                        LatLng C4 = new LatLng(corners.getJSONArray("coordinate4").getDouble(0), corners.getJSONArray("coordinate4").getDouble(1));
+
+                        log.info("Top Left (C1): {}, Top Right (C2): {}, Bottom Right (C3): {}, Bottom Left (C4): {}", C1, C2, C3, C4);
+
+                        float bearing = overlay.getBearing();
+
+                        mapper = new Mapper(iCenter, oCenter, C1, bearing);
+
+                        if (DEBUGGING) {
+                            LatLng boundSW = overlay.getBounds().southwest;
+                            LatLng rotatedBoundSW = new LatLng(mapper.rotateLatitudeAround(boundSW.latitude, bearing, oCenter), mapper.rotateLongitudeAround(boundSW.longitude, bearing, oCenter));
+                            LatLng boundNE = overlay.getBounds().northeast;
+                            LatLng rotatedBoundNE = new LatLng(mapper.rotateLatitudeAround(boundNE.latitude, bearing, oCenter), mapper.rotateLongitudeAround(boundNE.longitude, bearing, oCenter));
+
+                            log.info("Overlay Width : {} - Height : {}", overlay.getWidth(), overlay.getHeight());
+
+                            LatLng testCoord = new LatLng(37.871174, -122.258860);
+                            mapsActivity.getMmap().addMarker(new MarkerOptions()
+                                    .position(testCoord)
+                                    .title("Test"));
+
+                            LatLng testCoord2 = new LatLng(37.871528, -122.258858);
+                            mapsActivity.getMmap().addMarker(new MarkerOptions()
+                                    .position(testCoord2)
+                                    .title("Tes2"));
+
+                            log.info("Test Point estimated to {} on image", mapper.latLngToRotatedPoint(testCoord));
+                            log.info("Test Point 2 estimated to {} on image", mapper.latLngToRotatedPoint(testCoord2));
+                            log.info("Center Test {}", mapper.latLngToRotatedPoint(oCenter));
 
 
-                    log.info("North West Back and Forth : {}", mapper.pointToLatLng(mapper.latlngToPoint(NW)));
+                            log.info("Bound C4 on Map {}", boundSW);
+                            log.info("Rotated Bound C4 on Map {}", rotatedBoundSW);
+                            log.info("Bound C2 on Map {}", boundNE);
+                            log.info("Rotated Bound C2 on Map {}", rotatedBoundNE);
+                            log.info("Rotated North East on Image: {}", mapper.latlngToPoint(rotatedBoundNE));
+                            log.info("Rotated South West on Image: {}", mapper.latlngToPoint(rotatedBoundSW));
 
-                    log.info("Rotation back and forth : {}", mapper.pointToRotatedLatLng(mapper.latLngToRotatedPoint(boundSW)));
+                            log.info("Corners {}", corners);
+                            log.info("Bearing {}", bearing);
 
+                            log.info("Bitmap Width : {} - Height : {}", bitmap.getWidth(), bitmap.getHeight()); // 950 × 800
+
+                            log.info("Center on Map {}", oCenter);
+                            log.info("North West on Map {}", C1);
+                            log.info("North East on Map {}", C2);
+                            log.info("South East on Map {}", C3);
+                            log.info("South West on Map {}", C4);
+
+                            log.info("Center on Image: {}", mapper.latlngToPoint(oCenter));
+                            log.info("North West on Image: {}", mapper.latlngToPoint(C1));
+                            log.info("North East on Image: {}", mapper.latlngToPoint(C2));
+                            log.info("South East on Image: {}", mapper.latlngToPoint(C3));
+                            log.info("South West on Image: {}", mapper.latlngToPoint(C4));
+
+
+                            log.info("North West Back and Forth : {}", mapper.pointToLatLng(mapper.latlngToPoint(C1)));
+
+                            log.info("Rotation back and forth : {}", mapper.pointToRotatedLatLng(mapper.latLngToRotatedPoint(boundSW)));
+
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        log.warn("something died");
+                    }
+
+                    // Initialise Particle Set on user location on Image
+                    Point startPoint = mapper.latlngToPoint(loc);
+
+                    log.info("Start location is {} on image.", startPoint);
+                    particleSet = new ParticleSet(mContext, 2000, bitmap, startPoint.x, startPoint.y);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
             }
-
-            // Initialise Particle Set on user location on Image
-            Point startPoint = mapper.latLngToRotatedPoint(loc);
-            particleSet = new ParticleSet(mContext, 500, bitmap, startPoint.x, startPoint.y);
         }
     }
 
@@ -299,7 +352,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     private JSONObject getCorners() {
         JSONObject corners = null;
         try {
-            corners = activity.getCurrentBuilding().getJSONObject("fourCoordinates");
+            corners = mapsActivity.getCurrentBuilding().getJSONObject("fourCoordinates");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -310,8 +363,12 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
         this.overlay = overlay;
     }
 
-    public void setMapsActivity(MapsActivity activity) {
-        this.activity = activity;
+    public void setActivity(Activity activity) {
+        if(activity instanceof MapsActivity){
+            this.mapsActivity = (MapsActivity) activity;
+        } else if(activity instanceof DebugActivity){
+            this.debugActivity = (DebugActivity) activity;
+        }
     }
 
     //endregion
@@ -343,6 +400,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     }
 
     private void updateListeners(Location location) {
+        this.drLocation = location;
         for (OnLocationChangedListener listener : onLocationChangedListeners) {
             listener.onLocationChanged(location);
         }

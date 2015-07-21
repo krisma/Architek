@@ -2,9 +2,15 @@
 <resources>
 
     <string name="app_name">Architek</string>
+    <string name="app_id">104816949866636</string>
     <string name="title_activity_maps">Architek</string>
+    <string name="facebook_app_id">104816949866636</string>
 
 <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="title_activity_debug">DebugActivity</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
 
 </resources>

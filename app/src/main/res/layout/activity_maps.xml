@@ -24,7 +24,6 @@
         app:fab_addButtonPlusIconColor="@color/white"
         app:fab_expandDirection="left"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="false"
         android:layout_centerHorizontal="true">
 
 
@@ -79,7 +78,6 @@
         app:fab_colorPressed="@color/gray_semi_transparent_pressed"
         app:fab_icon="@drawable/ic_exposure_neg_1_white_48dp"
         app:fab_size="mini"
-        android:layout_alignParentStart="false"
         android:layout_gravity="center_horizontal|bottom"
         android:layout_below="@+id/floorView"
         android:layout_alignParentRight="true" />
@@ -94,7 +92,6 @@
         app:fab_icon="@drawable/ic_exposure_plus_1_white_48dp"
         app:fab_size="mini"
         android:layout_alignParentTop="false"
-        android:layout_alignParentStart="false"
         android:layout_gravity="center_horizontal|top"
         android:layout_above="@+id/floorView"
         android:layout_alignParentRight="true" />

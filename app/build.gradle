@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.krisma.architek"
-        minSdkVersion 15
+        minSdkVersion 16
         targetSdkVersion 21
         versionCode 1
         versionName "1.0"
@@ -20,6 +20,8 @@ android {
     }
 }
 
+repositories { mavenCentral() }
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 
@@ -28,4 +30,5 @@ dependencies {
     compile 'com.getbase:floatingactionbutton:1.9.1'
     compile 'com.android.support:support-v4:22.2.0'
     compile 'org.slf4j:slf4j-simple:1.7.12'
+    compile 'com.facebook.android:facebook-android-sdk:4.0.0'
 }

@@ -63,7 +63,7 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
     }
 
 
-    EvictingQueue<Float> events = new EvictingQueue<>(50);
+    EvictingQueue<Float> events = new EvictingQueue<>(30);
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -86,11 +86,11 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
 
                 events.add(heading);
 
-                float average = getAverage();
+                float average = getAverage(); // (getAverage() + 180) % 360;
 
                 if(lastUpdate == -1337) lastUpdate = average;
 
-                if(Math.abs(lastUpdate - average) > 2 ){
+                if(Math.abs(lastUpdate - average) > 1 ){
                     updateListeners(average);
                     lastUpdate = average;
 

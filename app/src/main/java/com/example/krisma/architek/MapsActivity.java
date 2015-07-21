@@ -14,9 +14,9 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.RelativeLayout;
@@ -26,6 +26,7 @@ import com.example.krisma.architek.deadreckoning.DeadReckoning;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.FloorListener;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
 import com.example.krisma.architek.deadreckoning.trackers.LocationTracker;
+import com.facebook.Profile;
 import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.getbase.floatingactionbutton.FloatingActionsMenu;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -36,7 +37,6 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
-import com.google.android.gms.maps.model.IndoorBuilding;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -74,7 +74,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private LatLng lastPosition = new LatLng(0, 0);
     private int currentOverlayId;
     private int currentFloorNumbers;
-    private int currentFloor;
+    private int currentFloor = 0;
     private LatLng currentBuildingLocation;
     private JSONArray currentBuildingMaps;
     private DeadReckoning deadReckoning;
@@ -92,6 +92,29 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private FloatingActionButton mPlusOneButton;
     private TextView floorView;
     private RelativeLayout mapLayout;
+    private boolean indoor;
+    private Bitmap currentOverlayBitmap;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_maps);
+
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
+
+        Intent i = new Intent(this, DeadReckoning.class);
+        bindService(i, mConnection, Context.BIND_AUTO_CREATE);
+        this.startService(i);
+
+        // setup is done in the OnServiceConnected callback to ensure object-pointers
+        setUpMapIfNeeded();
+        setupGUI();
+
+        // Facebook Profile
+        log.info("logged in as {} ({})", Profile.getCurrentProfile().getName(), Profile.getCurrentProfile().getLinkUri().toString());
+        log.info("Friends : {}", FB.getMyFriends());
+    }
 
     private void resetOverlay() {
 
@@ -156,6 +179,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             con.setRequestMethod("GET");
             con.setDoInput(true);
             con.connect();
+
             int responseCode = con.getResponseCode();
             is = con.getInputStream();
             JSONObject jObject = null;
@@ -166,12 +190,19 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             }
             ;
             Log.d("test", jObject.toString());
+
             currentBuildingMaps = jObject.getJSONArray("floors");
-            currentFloor = 0;
+            log.info(currentBuildingMaps.toString());
+
             currentFloorNumbers = currentBuildingMaps.length();
             currentBuildingLocation = location;
 
-            transitionToIndoor();
+            currentFloor = 0;
+            floorView.setText(0 + "");
+            floorView.invalidate();
+
+            overlayCurrentFloor();
+
             // TODO: Show FLoor Buttons
 
 
@@ -186,6 +217,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         }
     }
 
+    private LatLngBounds currentBounds;
     private LatLng detectOverlay(LatLng currentLocation) {
         Log.i("Called: detectOverlay", "Called: detectOverlay");
         for (int i = 0; i < coordinatesHash.length(); i++) {
@@ -193,8 +225,8 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                 LatLngBounds bounds = getBoundsFromJSONObject(coordinatesHash.getJSONObject(i)
                         .getJSONObject("twoCoordinates"));
                 Log.d("coordinates", bounds.toString());
-                if (bounds.contains(currentLocation)) {
-
+                if (bounds.contains(currentLocation) && bounds != currentBounds) {
+                    currentBounds = bounds;
                     return getLagLngFromLngLat(coordinatesHash.getJSONObject(i).getJSONArray("location"));
                 }
                 ;
@@ -259,28 +291,12 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         return sb.toString();
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps);
 
-        Intent i= new Intent(this, DeadReckoning.class);
-        bindService(i, mConnection, Context.BIND_AUTO_CREATE);
-        this.startService(i);
-
-
-        // setup is done in the OnServiceConnected callback to ensure object-pointers
-        setUpMapIfNeeded();
-        setupGUI();
-
-
-    }
 
     private void setupGUI() {
         getActionBar().hide();
 
         mapLayout = (RelativeLayout) findViewById(R.id.mapLayout);
-        mapLayout.setDrawingCacheEnabled(true);
 
         //Find the buttons
         mPlusOneButton = (FloatingActionButton) findViewById(R.id.upButton);
@@ -335,32 +351,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
 
     }
 
-    public int getColorOnMapFromScreenPosition(Point pos) {
-        mapLayout.buildDrawingCache();
-
-        Bitmap bitmap = mapLayout.getDrawingCache();
-
-        int pixel = bitmap.getPixel(pos.x, pos.y);
-
-        return pixel;
-    }
-
-    private void setOverlayImage(int floor) {
-        URL url = null;
-        try {
-            url = new URL(currentBuildingMaps.getJSONObject(floor).getString("map"));
-            currentOverlayURL = url;
-            Bitmap bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream());
-            groundOverlay.setImage(BitmapDescriptorFactory.fromBitmap(bmp));
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -402,22 +392,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         mMap.setBuildingsEnabled(true);
         mMap.setIndoorEnabled(true);
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-
-//        LatLng NEWARK = new LatLng(37.871305, -122.259165);
-//        GroundOverlayOptions newarkMap = new GroundOverlayOptions()
-//                .image(BitmapDescriptorFactory.fromResource(R.drawable.wheeler1))
-//                .position(NEWARK, 65f, 58f);
-//        groundOverlay = mMap.addGroundOverlay(newarkMap);
-//        groundOverlay.setBearing(-16);
-//        BitmapDescriptor overlayBitmap = BitmapDescriptorFactory.fromResource(R.drawable.saintjean1);
-//        currentOverlayId = R.drawable.saintjean1;
-//        LatLng Saint = new LatLng(43.708827, 7.288305);
-//        GroundOverlayOptions saintMap = new GroundOverlayOptions()
-//                .image(BitmapDescriptorFactory.fromResource(currentOverlayId))
-//                .position(Saint, 90f, 75f);
-//        groundOverlay = mMap.addGroundOverlay(saintMap);
-//        groundOverlay.setBearing(90);
-
         mMap.getUiSettings().setCompassEnabled(false);
         mMap.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
             @Override
@@ -431,6 +405,8 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                     mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
                     firstLoad = false;
                 }
+                pointsOnRoute.add(new LatLng(location.getLatitude(), location.getLongitude()));
+                updatePath();
             }
         });
 
@@ -454,28 +430,20 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                 });
             }
         });
+
         mMap.setOnMarkerClickListener(this);
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
-            // This is called when the connection with the service has been
-            // established, giving us the service object we can use to
-            // interact with the service.  Because we have bound to a explicit
-            // service that we know is running in our own process, we can
-            // cast its IBinder to a concrete class and directly access it.
             deadReckoning = ((DeadReckoning.LocalBinder)service).getService();
-            deadReckoning.setMapsActivity(MapsActivity.this);
+            deadReckoning.setActivity(MapsActivity.this);
             deadReckoning.getHeadingTracker().addListener(MapsActivity.this);
             deadReckoning.getLocationTracker().addListener(MapsActivity.this);
             mMap.setLocationSource(deadReckoning.getLocationTracker());
         }
 
         public void onServiceDisconnected(ComponentName className) {
-            // This is called when the connection with the service has been
-            // unexpectedly disconnected -- that is, its process crashed.
-            // Because it is running in our same process, we should never
-            // see this happen.
             deadReckoning = null;
         }
     };
@@ -483,7 +451,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     public void onFloorChanged(int currentFloor) {
         this.currentFloor = currentFloor;
         overlayCurrentFloor();
-        LocalBroadcastManager.getInstance(MapsActivity.this).sendBroadcast(new Intent(LocationTracker.TRANSITION_ACTION));
     }
 
     public void overlayCurrentFloor() {
@@ -496,6 +463,32 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
 
     public GoogleMap getMmap() {
         return mMap;
+    }
+
+    public Bitmap getCurrentOverlayBitmap() {
+        return currentOverlayBitmap;
+    }
+
+    public void setCurrentOverlayBitmap(Bitmap currentOverlayBitmap) {
+        this.currentOverlayBitmap = currentOverlayBitmap;
+    }
+
+
+    List<Marker> particles = new ArrayList<>();
+
+    public void showParticles(List<LatLng> locs){
+
+        for(Marker m : particles){
+            m.remove();
+        }
+
+        particles.clear();
+
+        for(LatLng l : locs){
+            particles.add(mMap.addMarker(new MarkerOptions()
+                    .position(l)
+                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.dot))));
+        }
     }
 
     private class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
@@ -533,6 +526,8 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         @Override
         protected void onPostExecute(Bitmap result) {
             try {
+
+                setCurrentOverlayBitmap(result);
                 LatLng anchor = new LatLng((Double) thisBuilding.getJSONArray("location").get(1),
                         (Double) thisBuilding.getJSONArray("location").get(0));
                 Float height = new Float(thisBuilding.getDouble("height"));
@@ -548,14 +543,18 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                 groundOverlay = mMap.addGroundOverlay(overlayOptions);
                 groundOverlay.setBearing(bearing);
 
-                transitionToIndoor();
-
                 deadReckoning.setGroundOverlay(groundOverlay);
                 currentBuilding = thisBuilding;
+
+                for(GroundOverlay g : overlaysHash.values()){
+                    g.remove();
+                }
 
                 GroundOverlay temp = mMap.addGroundOverlay(overlayOptions);
                 overlaysHash.put(anchor, temp);
                 temp.setBearing(bearing);
+
+                transitionToIndoor();
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -602,8 +601,8 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                 try {
                     jObject = new JSONObject(convertStreamToString(is));
                 } catch (JSONException f) {
-                    f.printStackTrace();
-                }
+                f.printStackTrace();
+            }
                 ;
                 buildings = jObject.getJSONArray("buildings");
                 return buildings;
@@ -680,6 +679,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         @Override
         protected void onPostExecute(Bitmap result) {
             if (result != null) {
+                for(GroundOverlay g : overlaysHash.values()){
+                    g.remove();
+                }
+
                 GroundOverlay toSetImage = overlaysHash.get(currentBuildingLocation);
                 toSetImage.setImage(BitmapDescriptorFactory.fromBitmap(result));
                 transitionToIndoor();
@@ -697,11 +700,22 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
 
 
     public void transitionToIndoor(){
+        if(!indoor){
+            deadReckoning.setGroundOverlay(groundOverlay);
+            deadReckoning.transitionToIndoor();
+            mMap.setLocationSource(deadReckoning);
+            indoor = true;
+        }
+    }
+
+    public void changeFloor(){
+        deadReckoning.setGroundOverlay(groundOverlay);
         deadReckoning.transitionToIndoor();
         mMap.setLocationSource(deadReckoning);
     }
 
     public void transtitionToOutdoor(){
+        indoor = false;
         deadReckoning.setParticleSet(null);
         mMap.setLocationSource(deadReckoning.getLocationTracker());
     }
@@ -750,13 +764,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     @Override
     public void onLocationChanged(Location location) {
 
-        if(location.getProvider().equals("DEAD_RECKONING")){
-            marker = mMap.addMarker(new MarkerOptions()
-                    .position(new LatLng(location.getLatitude(), location.getLongitude()))
-                    .title("DR"));
-        }
-
-
         currentLocation = location;
 
         if (lastLocation == null) {
@@ -767,16 +774,23 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             lastLocation = currentLocation;
             pointsOnRoute.add(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()));
 
+            updatePath();
 
-            PolylineOptions options = new PolylineOptions().width(5).color(Color.BLUE);
-            for (int z = 0; z < pointsOnRoute.size(); z++) {
-                LatLng point = pointsOnRoute.get(z);
-                options.add(point);
-            }
-            line = mMap.addPolyline(options);
+
         }
     }
 
+    private void updatePath() {
+        PolylineOptions options = new PolylineOptions().width(5).color(Color.BLUE);
+        for (int z = 0; z < pointsOnRoute.size(); z++) {
+            LatLng point = pointsOnRoute.get(z);
+            options.add(point);
+        }
+        line = mMap.addPolyline(options);
+    }
+
+
+    private float currentBearing = 0;
     @Override
     public void onHeadingChange(float heading) {
 
@@ -787,13 +801,14 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
 
         if (loc == null) return;
 
-        CameraPosition position = new CameraPosition.Builder().target(new LatLng(loc.getLatitude(), loc.getLongitude()))
-                .zoom(18f)
-                .bearing(heading)
-                .tilt(0)
-                .build();
+            CameraPosition position = new CameraPosition.Builder().target(new LatLng(loc.getLatitude(), loc.getLongitude()))
+                    .zoom(20f)
+                    .bearing(heading)
+                    .tilt(0)
+                    .build();
 
-        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+        //mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+
     }
     //endregion
 }

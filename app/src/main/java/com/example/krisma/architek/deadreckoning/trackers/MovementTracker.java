@@ -58,9 +58,12 @@ public class MovementTracker implements SensorEventListener {
     @Override
     public void onSensorChanged(SensorEvent event) {
 
-        if (!useAccelerometer) {
+        if (!useAccelerometer && event.sensor.getType() == Sensor.TYPE_STEP_DETECTOR) {
+
             float distance = getStepLength(184);
             updateListeners(distance);
+
+
         } else {
             float xValue = event.values[0];
             float yValue = event.values[1];
@@ -98,7 +101,6 @@ public class MovementTracker implements SensorEventListener {
 
                     if (isAlmostAsLargeAsPrevious && isPreviousLargeEnough && isNotContra) {
                         float stepLength = getStepLength(184);
-                        Log.i("Movement", "step -- length: " + stepLength + " cm");
                         updateListeners(stepLength);
                         mLastMatch = extType;
                     }
@@ -127,7 +129,8 @@ public class MovementTracker implements SensorEventListener {
     }
 
     public float getStepLength(float userHeight) {
-        return 0.45f * userHeight;
+        float length = 0.45f * userHeight;
+        return length / 5;
     }
 
     public void addMoveListener(MoveListener listener) {
