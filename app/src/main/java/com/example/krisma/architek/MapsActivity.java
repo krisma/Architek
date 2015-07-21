@@ -8,7 +8,6 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.Point;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
@@ -23,9 +22,8 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.example.krisma.architek.deadreckoning.DeadReckoning;
-import com.example.krisma.architek.deadreckoning.trackers.listeners.FloorListener;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
-import com.example.krisma.architek.deadreckoning.trackers.LocationTracker;
+import com.example.krisma.architek.deadreckoning.utils.Helper;
 import com.facebook.Profile;
 import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.getbase.floatingactionbutton.FloatingActionsMenu;
@@ -63,7 +61,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerClickListener, LocationSource.OnLocationChangedListener, HeadingListener, FloorListener {
+public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerClickListener, LocationSource.OnLocationChangedListener, HeadingListener{
+
+    //region Fields and Constants
 
     private static final Logger log = LoggerFactory.getLogger(MapsActivity.class);
 
@@ -83,6 +83,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private boolean firstLoad = true;
     AsyncDrawNextFloor drawNextFloorAsyncTask;
     private JSONObject currentBuilding;
+    HashMap<URL, Bitmap> floorplans = new HashMap<>();
 
 
     // UI ELEMENTS
@@ -94,6 +95,10 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private RelativeLayout mapLayout;
     private boolean indoor;
     private Bitmap currentOverlayBitmap;
+
+    //endregion
+
+    //region Initialization
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,262 +121,12 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         log.info("Friends : {}", FB.getMyFriends());
     }
 
-    private void resetOverlay() {
-
-        groundOverlay.remove();
-        currentFloor = 0;
-        currentBuildingMaps = null;
-        currentFloorNumbers = 0;
-        currentBuildingLocation = null;
-    }
-
-    private LatLng getLagLngFromLngLat(JSONArray coordinate) {
-        try {
-            return new LatLng(coordinate.getDouble(1), coordinate.getDouble(0));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        ;
-        return null;
-    }
-
-    private LatLngBounds getBoundsFromJSONObject(JSONObject twoCoordinates) {
-        LatLng sw = null;
-        LatLng ne = null;
-        try {
-            JSONArray coordinatesw = twoCoordinates.getJSONArray("coordinatesw");
-            JSONArray coordinatene = twoCoordinates.getJSONArray("coordinatene");
-            sw = new LatLng(coordinatesw.getDouble(0), coordinatesw.getDouble(1));
-            ne = new LatLng(coordinatene.getDouble(0), coordinatene.getDouble(1));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return new LatLngBounds(sw, ne);
-    }
-
-    private void drawOverlaysNearby() {
-        Log.i("Call", "Called: drawOverlaysNearby");
-        for (int i = 0; i < coordinatesHash.length(); i++) {
-            JSONObject thisBuilding = null;
-            try {
-                thisBuilding = coordinatesHash.getJSONObject(i);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            new AsyncDrawDefaultFloor(thisBuilding).execute();
-        }
-        ;
-    }
-
-    private void setFocusBuilding(LatLng location) {
-        Log.i("Call", "Called: setFocusBuilding");
-        URL url;
-        final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        String token = getPrefs.getString("token", "");
-        InputStream is = null;
-        HttpURLConnection con = null;
-        String param = String.valueOf(location.latitude) + "," + String.valueOf(location.longitude);
-
-        try {
-            url = new URL("https://architek-server.herokuapp.com/getbuildingmaps?" +
-                    "location=" + param);
-            con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("GET");
-            con.setDoInput(true);
-            con.connect();
-
-            int responseCode = con.getResponseCode();
-            is = con.getInputStream();
-            JSONObject jObject = null;
-            try {
-                jObject = new JSONObject(convertStreamToString(is));
-            } catch (JSONException f) {
-                f.printStackTrace();
-            }
-            ;
-            Log.d("test", jObject.toString());
-
-            currentBuildingMaps = jObject.getJSONArray("floors");
-            log.info(currentBuildingMaps.toString());
-
-            currentFloorNumbers = currentBuildingMaps.length();
-            currentBuildingLocation = location;
-
-            currentFloor = 0;
-            floorView.setText(0 + "");
-            floorView.invalidate();
-
-            overlayCurrentFloor();
-
-            // TODO: Show FLoor Buttons
-
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                con.disconnect();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private LatLngBounds currentBounds;
-    private LatLng detectOverlay(LatLng currentLocation) {
-        Log.i("Called: detectOverlay", "Called: detectOverlay");
-        for (int i = 0; i < coordinatesHash.length(); i++) {
-            try {
-                LatLngBounds bounds = getBoundsFromJSONObject(coordinatesHash.getJSONObject(i)
-                        .getJSONObject("twoCoordinates"));
-                Log.d("coordinates", bounds.toString());
-                if (bounds.contains(currentLocation) && bounds != currentBounds) {
-                    currentBounds = bounds;
-                    return getLagLngFromLngLat(coordinatesHash.getJSONObject(i).getJSONArray("location"));
-                }
-                ;
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-        ;
-        return null;
-    }
-
-    private boolean lastMoveFarEnough(LatLng currentLocation) {
-        return Math.sqrt((currentLocation.latitude - lastPosition.latitude) *
-                (currentLocation.latitude - lastPosition.latitude) +
-                (currentLocation.longitude - lastPosition.longitude) *
-                        (currentLocation.longitude - lastPosition.longitude)) > 0.0005;
-    }
-
-    private boolean lastMoveFarFarEnough(LatLng currentLocation) {
-        return Math.sqrt((currentLocation.latitude - lastPosition.latitude) *
-                (currentLocation.latitude - lastPosition.latitude) +
-                (currentLocation.longitude - lastPosition.longitude) *
-                        (currentLocation.longitude - lastPosition.longitude)) > 0.005;
-    }
-
-    private void updateOverlays() {
-        for (int i = 0; i < coordinatesHash.length(); i++) {
-            try {
-                JSONObject thisBuilding = coordinatesHash.getJSONObject(i);
-                LatLng toDraw = getLagLngFromLngLat(thisBuilding.getJSONArray("location"));
-                if (overlaysHash.containsKey(toDraw)) {
-                    continue;
-                } else {
-                    new AsyncDrawDefaultFloor(thisBuilding).execute();
-                }
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-        }
-
-    }
-
-    public String convertStreamToString(InputStream is) {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-        StringBuilder sb = new StringBuilder();
-        String line = null;
-        try {
-            while ((line = reader.readLine()) != null) {
-                sb.append(line + "/n");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                is.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return sb.toString();
-    }
-
-
-
-    private void setupGUI() {
-        getActionBar().hide();
-
-        mapLayout = (RelativeLayout) findViewById(R.id.mapLayout);
-
-        //Find the buttons
-        mPlusOneButton = (FloatingActionButton) findViewById(R.id.upButton);
-        mMinusOneButton = (FloatingActionButton) findViewById(R.id.downButton);
-
-        // Find FloorView
-        floorView = (TextView) findViewById(R.id.floorView);
-        floorView.setShadowLayer(16, 4, 4, Color.BLACK);
-
-        mPlusOneButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                if (currentFloor < currentFloorNumbers) { // TODO: Should not exceed max floors
-                    currentFloor++;
-
-                    floorView.setText(String.valueOf(currentFloor));
-
-                    onFloorChanged(currentFloor);
-                }
-            }
-        });
-
-        mMinusOneButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                currentFloor--; // TODO: should not exceed the minimum floor level
-                floorView.setText(String.valueOf(currentFloor));
-
-                onFloorChanged(currentFloor);
-            }
-        });
-
-        expandMenu = (FloatingActionsMenu) findViewById(R.id.right_menu);
-        expandMenu.setSoundEffectsEnabled(true);
-
-        editButton = (FloatingActionButton) findViewById(R.id.editButton);
-        editButton.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                CameraPosition position = new CameraPosition.Builder().target(new LatLng(37.871223, -122.259060))
-                        .zoom(18f)
-                        .bearing(0)
-                        .tilt(0)
-                        .build();
-                mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
-            }
-        });
-
-        // TODO: Hide FLoor Buttons
-
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
         setUpMapIfNeeded();
     }
 
-    /**
-     * Sets up the map if it is possible to do so (i.e., the Google Play services APK is correctly
-     * installed) and the map has not already been instantiated.. This will ensure that we only ever
-     * call {@link #setUpMap()} once when {@link #mMap} is not null.
-     * <p/>
-     * If it isn't installed {@link SupportMapFragment} (and
-     * {@link com.google.android.gms.maps.MapView MapView}) will show a prompt for the user to
-     * install/update the Google Play services APK on their device.
-     * <p/>
-     * A user can return to this FragmentActivity after following the prompt and correctly
-     * installing/updating/enabling the Google Play services. Since the FragmentActivity may not
-     * have been completely destroyed during this process (it is likely that it would only be
-     * stopped or paused), {@link #onCreate(Bundle)} may not be called again so we should call this
-     * method in {@link #onResume()} to guarantee that it will be called.
-     */
     private void setUpMapIfNeeded() {
         // Do a null check to confirm that we have not already instantiated the map.
         if (mMap == null) {
@@ -405,8 +160,8 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
                     mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
                     firstLoad = false;
                 }
-                pointsOnRoute.add(new LatLng(location.getLatitude(), location.getLongitude()));
-                updatePath();
+                //pointsOnRoute.add(new LatLng(location.getLatitude(), location.getLongitude()));
+                //updatePath();
             }
         });
 
@@ -434,6 +189,66 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         mMap.setOnMarkerClickListener(this);
     }
 
+    private void setupGUI() {
+        getActionBar().hide();
+
+        mapLayout = (RelativeLayout) findViewById(R.id.mapLayout);
+
+        //Find the buttons
+        mPlusOneButton = (FloatingActionButton) findViewById(R.id.upButton);
+        mMinusOneButton = (FloatingActionButton) findViewById(R.id.downButton);
+
+        // Find FloorView
+        floorView = (TextView) findViewById(R.id.floorView);
+        floorView.setShadowLayer(16, 4, 4, Color.BLACK);
+
+        mPlusOneButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if (currentFloor < currentFloorNumbers) { // TODO: Should not exceed max floors
+                    currentFloor++;
+
+                    floorView.setText(String.valueOf(currentFloor));
+
+                    changeFloor(currentFloor);
+                }
+            }
+        });
+
+        mMinusOneButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                currentFloor--; // TODO: should not exceed the minimum floor level
+                floorView.setText(String.valueOf(currentFloor));
+
+                changeFloor(currentFloor);
+            }
+        });
+
+        expandMenu = (FloatingActionsMenu) findViewById(R.id.right_menu);
+        expandMenu.setSoundEffectsEnabled(true);
+
+        editButton = (FloatingActionButton) findViewById(R.id.editButton);
+        editButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                CameraPosition position = new CameraPosition.Builder().target(new LatLng(37.871223, -122.259060))
+                        .zoom(18f)
+                        .bearing(0)
+                        .tilt(0)
+                        .build();
+                mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+            }
+        });
+
+        mMinusOneButton.setVisibility(View.INVISIBLE);
+        mPlusOneButton.setVisibility(View.INVISIBLE);
+        floorView.setVisibility(View.INVISIBLE);
+
+    }
+
     private ServiceConnection mConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
             deadReckoning = ((DeadReckoning.LocalBinder)service).getService();
@@ -448,46 +263,225 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         }
     };
 
-    public void onFloorChanged(int currentFloor) {
+    //endregion
+
+    //region Floor Drawing Flow
+
+
+    // 1. Update Coordinate Bounds on Camera Update --> detectOverlay
+    private long lastOverlayDetect = System.currentTimeMillis();
+    private GoogleMap.OnCameraChangeListener cameraListener = new GoogleMap.OnCameraChangeListener() {
+        @Override
+        public void onCameraChange(CameraPosition cameraPosition) {
+            if (lastMoveFarFarEnough(cameraPosition.target)) {
+                new AsyncUpdateCoordinatesHash(cameraPosition.target).execute();
+
+            }
+
+            if (lastMoveFarEnough(cameraPosition.target)) {
+                if (coordinatesHash != null && System.currentTimeMillis() > lastOverlayDetect + 4000) {
+                    lastOverlayDetect = System.currentTimeMillis();
+                    LatLng tmp = detectOverlay(cameraPosition.target);
+
+                    if (tmp != null) {
+                        setFocusBuilding(tmp);
+                    } else {
+                        mMinusOneButton.setVisibility(View.INVISIBLE);
+                        mPlusOneButton.setVisibility(View.INVISIBLE);
+                        floorView.setVisibility(View.INVISIBLE);
+                    }
+
+                }
+
+            }
+
+        }
+    };
+
+    // 2. Find building around given location
+    private LatLngBounds currentBounds;
+    private LatLng detectOverlay(LatLng currentLocation) {
+        Log.i("Called: detectOverlay", "Called: detectOverlay");
+        for (int i = 0; i < coordinatesHash.length(); i++) {
+            try {
+                LatLngBounds bounds = Helper.getBoundsFromJSONObject(coordinatesHash.getJSONObject(i)
+                        .getJSONObject("twoCoordinates"));
+                Log.d("coordinates", bounds.toString());
+                if (bounds.contains(currentLocation) && bounds != currentBounds) {
+                    currentBounds = bounds;
+                    return Helper.getLagLngFromLngLat(coordinatesHash.getJSONObject(i).getJSONArray("location"));
+                }
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return null;
+    }
+
+    // 3. Focus the building found by detectOverlay
+    private void setFocusBuilding(LatLng location) {
+        Log.i("Call", "Called: setFocusBuilding");
+        URL url;
+        final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        String token = getPrefs.getString("token", "");
+        InputStream is = null;
+        HttpURLConnection con = null;
+        String param = String.valueOf(location.latitude) + "," + String.valueOf(location.longitude);
+
+        try {
+            url = new URL("https://architek-server.herokuapp.com/getbuildingmaps?" +
+                    "location=" + param);
+            con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("GET");
+            con.setDoInput(true);
+            con.connect();
+
+            int responseCode = con.getResponseCode();
+            is = con.getInputStream();
+            JSONObject jObject = null;
+            try {
+                jObject = new JSONObject(Helper.convertStreamToString(is));
+            } catch (JSONException f) {
+                f.printStackTrace();
+            }
+            ;
+            Log.d("test", jObject.toString());
+
+            currentBuildingMaps = jObject.getJSONArray("floors");
+            log.info(currentBuildingMaps.toString());
+
+            currentFloorNumbers = currentBuildingMaps.length();
+            currentBuildingLocation = location;
+
+            currentFloor = 0;
+            floorView.setText(0 + "");
+            floorView.invalidate();
+
+            mMinusOneButton.setVisibility(View.VISIBLE);
+            mPlusOneButton.setVisibility(View.VISIBLE);
+            floorView.setVisibility(View.VISIBLE);
+
+            overlayCurrentFloor();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                con.disconnect();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void transitionToIndoor(){
+        if(!indoor){
+            deadReckoning.setGroundOverlay(groundOverlay);
+            deadReckoning.transitionToIndoor();
+            mMap.setLocationSource(deadReckoning);
+            indoor = true;
+        }
+    }
+
+    public void changeFloor(int currentFloor) {
         this.currentFloor = currentFloor;
         overlayCurrentFloor();
     }
 
     public void overlayCurrentFloor() {
-        if (drawNextFloorAsyncTask != null && !drawNextFloorAsyncTask.isCancelled()) {
-            drawNextFloorAsyncTask.cancel(true);
-        }
+//        if (drawNextFloorAsyncTask != null && !drawNextFloorAsyncTask.isCancelled()) {
+//            drawNextFloorAsyncTask.cancel(true);
+//        }
         drawNextFloorAsyncTask = new AsyncDrawNextFloor();
         drawNextFloorAsyncTask.execute();
     }
 
-    public GoogleMap getMmap() {
-        return mMap;
-    }
+    private void updateOverlays() {
+        for (int i = 0; i < coordinatesHash.length(); i++) {
+            try {
+                JSONObject thisBuilding = coordinatesHash.getJSONObject(i);
+                LatLng toDraw = Helper.getLagLngFromLngLat(thisBuilding.getJSONArray("location"));
+                if (overlaysHash.containsKey(toDraw)) {
+                    continue;
+                } else {
+                    new AsyncDrawDefaultFloor(thisBuilding).execute();
+                }
 
-    public Bitmap getCurrentOverlayBitmap() {
-        return currentOverlayBitmap;
-    }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
 
-    public void setCurrentOverlayBitmap(Bitmap currentOverlayBitmap) {
-        this.currentOverlayBitmap = currentOverlayBitmap;
-    }
-
-
-    List<Marker> particles = new ArrayList<>();
-
-    public void showParticles(List<LatLng> locs){
-
-        for(Marker m : particles){
-            m.remove();
         }
 
-        particles.clear();
+    }
 
-        for(LatLng l : locs){
-            particles.add(mMap.addMarker(new MarkerOptions()
-                    .position(l)
-                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.dot))));
+
+    //endregion
+
+    //region Async Tasks
+    private class AsyncUpdateCoordinatesHash extends AsyncTask<String, Void, JSONArray> {
+
+        private final LatLng target;
+
+        public AsyncUpdateCoordinatesHash(LatLng target) {
+            this.target = target;
+        }
+
+        @Override
+        protected JSONArray doInBackground(String... params) {
+            URL url;
+            HttpURLConnection con = null;
+            JSONArray buildings = null;
+            final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+            String token = getPrefs.getString("token", "");
+            String coordinateParam = Double.toString(target.latitude) + "," + Double.toString(target.longitude);
+            InputStream is = null;
+            try {
+                url = new URL("https://architek-server.herokuapp.com/getbuildingsnearby?" +
+                        "coordinate=" + coordinateParam + "&" + "token=" + token);
+                con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod("GET");
+                con.setDoInput(true);
+                con.connect();
+                int responseCode = con.getResponseCode();
+                is = con.getInputStream();
+                JSONObject jObject = null;
+                try {
+                    jObject = new JSONObject(Helper.convertStreamToString(is));
+                } catch (JSONException f) {
+                    f.printStackTrace();
+                }
+                ;
+                buildings = jObject.getJSONArray("buildings");
+                return buildings;
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (ProtocolException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return buildings;
+        }
+
+        @Override
+        protected void onPostExecute(JSONArray result) {
+            coordinatesHash = result;
+            updateOverlays();
+        }
+
+        ;
+
+        @Override
+        protected void onPreExecute() {
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
         }
     }
 
@@ -570,92 +564,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         }
     }
 
-
-    private class AsyncUpdateCoordinatesHash extends AsyncTask<String, Void, JSONArray> {
-
-        private final LatLng target;
-
-        public AsyncUpdateCoordinatesHash(LatLng target) {
-            this.target = target;
-        }
-
-        @Override
-        protected JSONArray doInBackground(String... params) {
-            URL url;
-            HttpURLConnection con = null;
-            JSONArray buildings = null;
-            final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-            String token = getPrefs.getString("token", "");
-            String coordinateParam = Double.toString(target.latitude) + "," + Double.toString(target.longitude);
-            InputStream is = null;
-            try {
-                url = new URL("https://architek-server.herokuapp.com/getbuildingsnearby?" +
-                        "coordinate=" + coordinateParam + "&" + "token=" + token);
-                con = (HttpURLConnection) url.openConnection();
-                con.setRequestMethod("GET");
-                con.setDoInput(true);
-                con.connect();
-                int responseCode = con.getResponseCode();
-                is = con.getInputStream();
-                JSONObject jObject = null;
-                try {
-                    jObject = new JSONObject(convertStreamToString(is));
-                } catch (JSONException f) {
-                f.printStackTrace();
-            }
-                ;
-                buildings = jObject.getJSONArray("buildings");
-                return buildings;
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (ProtocolException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return buildings;
-        }
-
-        @Override
-        protected void onPostExecute(JSONArray result) {
-            coordinatesHash = result;
-            updateOverlays();
-        }
-
-        ;
-
-        @Override
-        protected void onPreExecute() {
-        }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-        }
-    }
-
-    public JSONObject getCurrentBuilding() {
-        return currentBuilding;
-    }
-
-    HashMap<URL, Bitmap> floorplans = new HashMap<>();
-
-    Location lastLocation = new Location(LocationManager.GPS_PROVIDER);
-    Location currentLocation;
-
-    List<LatLng> pointsOnRoute = new ArrayList<>();
-    Polyline line;
-
-    public GroundOverlay getCurrentOverlayObject() {
-        return groundOverlay;
-    }
-
-    public URL getCurrentOverlayURL() {
-        return currentOverlayURL;
-    }
-
-
     private class AsyncDrawNextFloor extends AsyncTask<String, Void, Bitmap> {
 
         @Override
@@ -685,7 +593,9 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
 
                 GroundOverlay toSetImage = overlaysHash.get(currentBuildingLocation);
                 toSetImage.setImage(BitmapDescriptorFactory.fromBitmap(result));
+
                 transitionToIndoor();
+                overlayCurrentFloor();
             }
         }
 
@@ -698,29 +608,74 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         }
     }
 
+    //endregion
 
-    public void transitionToIndoor(){
-        if(!indoor){
-            deadReckoning.setGroundOverlay(groundOverlay);
-            deadReckoning.transitionToIndoor();
-            mMap.setLocationSource(deadReckoning);
-            indoor = true;
+    //region Helper Methods
+    private boolean lastMoveFarEnough(LatLng currentLocation) {
+        return Math.sqrt((currentLocation.latitude - lastPosition.latitude) *
+                (currentLocation.latitude - lastPosition.latitude) +
+                (currentLocation.longitude - lastPosition.longitude) *
+                        (currentLocation.longitude - lastPosition.longitude)) > 0.0005;
+    }
+
+    private boolean lastMoveFarFarEnough(LatLng currentLocation) {
+        return Math.sqrt((currentLocation.latitude - lastPosition.latitude) *
+                (currentLocation.latitude - lastPosition.latitude) +
+                (currentLocation.longitude - lastPosition.longitude) *
+                        (currentLocation.longitude - lastPosition.longitude)) > 0.005;
+    }
+
+    //endregion
+
+    //region Getters and Setters
+    public GoogleMap getMmap() {
+        return mMap;
+    }
+
+    public Bitmap getCurrentOverlayBitmap() {
+        return currentOverlayBitmap;
+    }
+
+    public void setCurrentOverlayBitmap(Bitmap currentOverlayBitmap) {
+        this.currentOverlayBitmap = currentOverlayBitmap;
+    }
+
+    public JSONObject getCurrentBuilding() {
+        return currentBuilding;
+    }
+
+    public URL getCurrentOverlayURL() {
+        return currentOverlayURL;
+    }
+    //endregion
+
+    //region Dead Reckoning
+    Location lastLocation = new Location(LocationManager.GPS_PROVIDER);
+    Location currentLocation;
+
+    List<LatLng> pointsOnRoute = new ArrayList<>();
+    Polyline line;
+
+    List<Marker> particles = new ArrayList<>();
+
+    public void showParticles(List<LatLng> locs){
+
+        for(Marker m : particles){
+            m.remove();
+        }
+
+        particles.clear();
+
+        for(LatLng l : locs){
+            particles.add(mMap.addMarker(new MarkerOptions()
+                    .position(l)
+                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.dot))));
         }
     }
 
-    public void changeFloor(){
-        deadReckoning.setGroundOverlay(groundOverlay);
-        deadReckoning.transitionToIndoor();
-        mMap.setLocationSource(deadReckoning);
-    }
+    //endregion
 
-    public void transtitionToOutdoor(){
-        indoor = false;
-        deadReckoning.setParticleSet(null);
-        mMap.setLocationSource(deadReckoning.getLocationTracker());
-    }
-
-    //region Map Listeners
+    //region Listeners
     @Override
     public boolean onMarkerClick(Marker marker) {
         if (marker != null) {
@@ -730,36 +685,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         return true;
     }
 
-    private long lastOverlayDetect = System.currentTimeMillis();
-    private GoogleMap.OnCameraChangeListener cameraListener = new GoogleMap.OnCameraChangeListener() {
-        @Override
-        public void onCameraChange(CameraPosition cameraPosition) {
-            if (lastMoveFarFarEnough(cameraPosition.target)) {
-                new AsyncUpdateCoordinatesHash(cameraPosition.target).execute();
-
-            }
-
-            if (lastMoveFarEnough(cameraPosition.target)) {
-                if (coordinatesHash != null && System.currentTimeMillis() > lastOverlayDetect + 4000) {
-                    lastOverlayDetect = System.currentTimeMillis();
-                    LatLng tmp = detectOverlay(cameraPosition.target);
-
-                    if (tmp != null) {
-                        setFocusBuilding(tmp);
-                    } else {
-                        // TODO: Hide FLoor Buttons
-                    }
-
-                }
-
-            }
-
-        }
-    };
-
-    //endregion
-
-    //region Tracker Listeners
     Marker marker;
     @Override
     public void onLocationChanged(Location location) {
@@ -809,6 +734,24 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
 
         //mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
 
+    }
+    //endregion
+
+    //region Currently Unused
+    public GroundOverlay getCurrentOverlayObject() {
+        return groundOverlay;
+    }
+
+    public void changeFloor(){
+        deadReckoning.setGroundOverlay(groundOverlay);
+        deadReckoning.transitionToIndoor();
+        mMap.setLocationSource(deadReckoning);
+    }
+
+    public void transtitionToOutdoor(){
+        indoor = false;
+        deadReckoning.setParticleSet(null);
+        mMap.setLocationSource(deadReckoning.getLocationTracker());
     }
     //endregion
 }

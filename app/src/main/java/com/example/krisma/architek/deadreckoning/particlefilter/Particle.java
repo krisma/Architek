@@ -99,10 +99,10 @@ public class Particle {
 
         int mapColor = floorplan.getPixel((int) x , (int) y);
         if (blockingColors.contains(mapColor)) {
-            weight = 0.05f; // Collision with wall  0.05 is good
+            weight = 0.1f; // Collision with wall  0.05 is good
             return;
         } else if (mapColor == Color.WHITE) {
-            weight = 0.95f; // no collision          0.95 is good
+            weight = 0.9f; // no collision          0.95 is good
         } else {
             weight = 0.0f; // outside of map
         }
