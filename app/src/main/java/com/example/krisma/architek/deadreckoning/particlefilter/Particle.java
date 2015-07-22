@@ -17,13 +17,6 @@ public class Particle {
     private float weight = 1;
     List<Integer> blockingColors = new ArrayList<Integer>();
 
-
-    public Particle(){
-        blockingColors.add(Color.BLACK);
-        blockingColors.add(Color.GRAY);
-        blockingColors.add(Color.DKGRAY);
-        blockingColors.add(Color.TRANSPARENT);
-    }
     /**
      * Create a particle with a specific pose
      *
@@ -78,35 +71,15 @@ public class Particle {
         if(x > floorplan.getWidth()) x = floorplan.getWidth() - 1;
         if(y > floorplan.getHeight()) y = floorplan.getHeight() - 1;
 
-
-//        try {
-//            for (int i = -2; i <= x + 2; i++) {
-//                for (int j = -2; j <= y + 2; j++) {
-//                    int mapColor = floorplan.getPixel((int) x + i, (int) y + j);
-//                    if (blockingColors.contains(mapColor)) {
-//                        weight = 0.1f; // Collision with wall  0.05 is good
-//                        return;
-//                    } else if (mapColor == Color.WHITE) {
-//                        weight = 0.9f; // no collision          0.95 is good
-//                    } else {
-//                        weight = 0.0f; // outside of map
-//                    }
-//                }
-//            }
-//        } catch(IndexOutOfBoundsException e){
-//            weight = 0.05f; // too close to edge
-//        }
-
         int mapColor = floorplan.getPixel((int) x , (int) y);
         if (blockingColors.contains(mapColor)) {
-            weight = 0.1f; // Collision with wall  0.05 is good
+            weight = 0.05f; // Collision with wall  0.05 is good
             return;
         } else if (mapColor == Color.WHITE) {
-            weight = 0.9f; // no collision          0.95 is good
+            weight = 0.95f; // no collision          0.95 is good
         } else {
             weight = 0.0f; // outside of map
         }
-
     }
 
 
@@ -122,14 +95,8 @@ public class Particle {
         double ym = move.getDistanceTraveled() * ((float) Math.sin(Math.toRadians(move.getHeading())));
         double xm = move.getDistanceTraveled() * ((float) Math.cos(Math.toRadians(move.getHeading())));
 
-        // TODO: signs may be an issue
-        //double y = pose.getY() + (180 / Math.PI) * (ym / 6378137);
-        //double x = pose.getX() + (180 / Math.PI) * (xm / 6378137) / Math.cos(pose.getY());
-
         double y = pose.getY() + ym + (distanceNoiseFactor * ym * rand.nextGaussian());
         double x = pose.getX() + xm + (distanceNoiseFactor * xm * rand.nextGaussian());
-
-
 
         if(x > bitmap.getWidth()){
             x = bitmap.getWidth() - 1;

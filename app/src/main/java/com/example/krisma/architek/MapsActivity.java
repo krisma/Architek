@@ -92,7 +92,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private FloatingActionButton mMinusOneButton;
     private FloatingActionButton mPlusOneButton;
     private TextView floorView;
-    private RelativeLayout mapLayout;
     private boolean indoor;
     private Bitmap currentOverlayBitmap;
 
@@ -192,8 +191,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     private void setupGUI() {
         getActionBar().hide();
 
-        mapLayout = (RelativeLayout) findViewById(R.id.mapLayout);
-
         //Find the buttons
         mPlusOneButton = (FloatingActionButton) findViewById(R.id.upButton);
         mMinusOneButton = (FloatingActionButton) findViewById(R.id.downButton);
@@ -275,7 +272,6 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
         public void onCameraChange(CameraPosition cameraPosition) {
             if (lastMoveFarFarEnough(cameraPosition.target)) {
                 new AsyncUpdateCoordinatesHash(cameraPosition.target).execute();
-
             }
 
             if (lastMoveFarEnough(cameraPosition.target)) {
@@ -412,9 +408,7 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-
         }
-
     }
 
 
@@ -755,3 +749,4 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     }
     //endregion
 }
+

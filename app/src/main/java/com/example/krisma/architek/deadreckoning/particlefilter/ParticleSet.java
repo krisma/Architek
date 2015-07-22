@@ -30,7 +30,7 @@ public class ParticleSet{
 
     // Instance variables
     private float distanceNoiseFactor = 1f; // 2
-    private float angleNoiseFactor = 10f;  // 10
+    private float angleNoiseFactor = 5f;  // 10
     private float spreadArea = 10;
     private int numParticles;
     private Particle[] particles;

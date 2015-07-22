@@ -130,7 +130,7 @@ public class MovementTracker implements SensorEventListener {
 
     public float getStepLength(float userHeight) {
         float length = 0.45f * userHeight;
-        return length / 5;
+        return length / 6;
     }
 
     public void addMoveListener(MoveListener listener) {

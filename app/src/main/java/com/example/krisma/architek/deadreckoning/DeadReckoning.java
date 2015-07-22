@@ -145,7 +145,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
 
             Log.d("Move", "Moved " + d + " in heading: " + h);
 
-            int tickDistance = 1;
+            int tickDistance = 2;
 
             while (d - tickDistance > tickDistance) {
                 Move tmp = new Move(d, h);
@@ -211,7 +211,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     };
 
     boolean indoor = false;
-    boolean DEBUGGING = false;
+    boolean DEBUGGING = true;
 
     public void transitionToIndoor() {
         if(DEBUGGING){
@@ -252,7 +252,6 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
 
                     // Transformation to the Image
                     Point iCenter = new Point(bitmap.getWidth() / 2, bitmap.getHeight() / 2);
-                    Point iNW = new Point(0, 0);
 
                     LatLng oCenter = overlay.getPosition();
 
@@ -336,7 +335,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
                     Point startPoint = mapper.latlngToPoint(loc);
 
                     log.info("Start location is {} on image.", startPoint);
-                    particleSet = new ParticleSet(mContext, 2000, bitmap, startPoint.x, startPoint.y);
+                    particleSet = new ParticleSet(mContext, 1000, bitmap, startPoint.x, startPoint.y);
 
                 } catch (Exception e) {
                     e.printStackTrace();

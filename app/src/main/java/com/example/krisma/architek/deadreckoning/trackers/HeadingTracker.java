@@ -29,7 +29,6 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
     float[] mGeomagnetic;
     private float azimut;
     private ArrayList<HeadingListener> listeners = new ArrayList<>();
-    private Location location;
     private GeomagneticField geoField;
 
 
@@ -63,8 +62,8 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
     }
 
 
-    EvictingQueue<Float> events = new EvictingQueue<>(30);
-
+    EvictingQueue<Float> events = new EvictingQueue<>(5);
+    Long updateTimeBoundary = System.currentTimeMillis();
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
@@ -86,13 +85,23 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
 
                 events.add(heading);
 
-                float average = getAverage(); // (getAverage() + 180) % 360;
+                // Round down to even 10's
+                float average = (getAverage() + 175) % 360;
+
+                float rest = average % 10;
+                if(rest > 5){
+                    average = average + (10 - rest);
+                } else {
+                    average = average - rest;
+                }
 
                 if(lastUpdate == -1337) lastUpdate = average;
 
-                if(Math.abs(lastUpdate - average) > 1 ){
+                if(System.currentTimeMillis() > updateTimeBoundary + 500){
                     updateListeners(average);
                     lastUpdate = average;
+                    updateTimeBoundary = System.currentTimeMillis();
+                    Log.d("Heading", "H: " + average);
 
                 }
 
@@ -133,7 +142,6 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
 
     @Override
     public void onLocationChanged(Location location) {
-        this.location = location;
         geoField = new GeomagneticField(
                 Double.valueOf(location.getLatitude()).floatValue(),
                 Double.valueOf(location.getLongitude()).floatValue(),
