@@ -8,12 +8,14 @@ import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.example.krisma.architek.deadreckoning.utils.KalmanLatLong;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.LocationSource;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,13 +101,24 @@ public class LocationTracker implements GoogleApiClient.ConnectionCallbacks, Goo
         return longitude;
     }
 
+    KalmanLatLong kll = new KalmanLatLong(3); // should be higher for cars
+
     @Override
     public void onLocationChanged(Location location) {
         Location lastLocation = this.location;
 
-        updateListeners(location);
+        if(location.hasAccuracy()){
+            kll.Process(location.getLatitude(), location.getLongitude(), location.getAccuracy(), location.getTime());
+            Location loc = new Location("LocationTracker");
+            loc.setLatitude(kll.get_lat());
+            loc.setLongitude(kll.get_lng());
 
-        this.location = location;
+            updateListeners(loc);
+
+            this.location = location;
+        }
+
+        updateListeners(location);
 
         if(lastLocation != null && this.location != null) {
             float accuracyChange = lastLocation.getAccuracy() - location.getAccuracy();
