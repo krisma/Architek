@@ -37,7 +37,10 @@ public class SplashActivity extends Activity{
 
         final Activity thisActivity = this;
 
-        if(AccessToken.getCurrentAccessToken() != null){
+        if(DEBUGGING) {
+            Intent i = new Intent(thisActivity, DebugActivity.class);
+            thisActivity.startActivity(i);
+        } else  if(AccessToken.getCurrentAccessToken() != null){
             LoginManager.getInstance().logInWithReadPermissions(this, Arrays.asList("public_profile", "user_friends"));
             new Handler().postDelayed(new Runnable() {
                 @Override
@@ -46,13 +49,10 @@ public class SplashActivity extends Activity{
                     image.animate().alpha(0).setDuration(3000).withEndAction(new Runnable() {
                         @Override
                         public void run() {
-                            if(DEBUGGING) {
-                                Intent i = new Intent(thisActivity, DebugActivity.class);
-                                thisActivity.startActivity(i);
-                            } else {
+
                                 Intent i = new Intent(thisActivity, MapsActivity.class);
                                 thisActivity.startActivity(i);
-                            }
+
                         }
                     }).start();
                 }

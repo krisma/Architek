@@ -41,6 +41,9 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.maps.model.TileOverlay;
+import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.maps.android.heatmaps.HeatmapTileProvider;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -116,8 +119,10 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         setupGUI();
 
         // Facebook Profile
-        log.info("logged in as {} ({})", Profile.getCurrentProfile().getName(), Profile.getCurrentProfile().getLinkUri().toString());
-        log.info("Friends : {}", FB.getMyFriends());
+        if(Profile.getCurrentProfile() != null) {
+            log.info("logged in as {} ({})", Profile.getCurrentProfile().getName(), Profile.getCurrentProfile().getLinkUri().toString());
+            log.info("Friends : {}", FB.getMyFriends());
+        }
     }
 
     @Override
@@ -579,19 +584,30 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
 
     List<Marker> particles = new ArrayList<>();
 
+
+    private HeatmapTileProvider mProvider;
+    private TileOverlay mOverlay;
+
     public void showParticles(List<LatLng> locs){
+        mOverlay.remove();
+        mProvider = new HeatmapTileProvider.Builder()
+                .data(locs)
+                .build();
+        mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
 
-        for(Marker m : particles){
-            m.remove();
-        }
 
-        particles.clear();
 
-        for(LatLng l : locs){
-            particles.add(mMap.addMarker(new MarkerOptions()
-                    .position(l)
-                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.dot))));
-        }
+//        for(Marker m : particles){
+//            m.remove();
+//        }
+//
+//        particles.clear();
+//
+//        for(LatLng l : locs){
+//            particles.add(mMap.addMarker(new MarkerOptions()
+//                    .position(l)
+//                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.dot))));
+//        }
     }
 
     //endregion

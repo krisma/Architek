@@ -27,10 +27,14 @@ import com.example.krisma.architek.deadreckoning.trackers.MovementTracker;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.MoveListener;
 import com.example.krisma.architek.deadreckoning.utils.Mapper;
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.TileOverlay;
+import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.maps.android.heatmaps.HeatmapTileProvider;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -55,14 +59,12 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     private MovementTracker movementTracker;
     private double heading;
 
-
     private ParticleSet particleSet;
     private HeadingTracker headingTracker;
     private GroundOverlay overlay;
     private MapsActivity mapsActivity;
     private Location drLocation;
     private DebugActivity debugActivity;
-    private LatLng position;
 
     //endregion
 
@@ -132,11 +134,8 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     @Override
     public void onMove(final Move m) {
 
-        //particleSet = debugActivity.getOIV().getParticleSet();
-
         if(particleSet == null && DEBUGGING){
             particleSet = debugActivity.getOIV().getParticleSet();
-
         }
 
         if (particleSet != null) {
@@ -179,6 +178,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     public void showParticlesOnMap(){
         if(particleSet != null && particleSet.getParticles().length > 0) {
             List<LatLng> locs = new ArrayList<>();
+
             for (int i = 0; i < particleSet.getParticles().length; i++) {
                 Pose p = particleSet.getParticles()[i].getPose();
                 locs.add(mapper.pointToLatLng(new Point((int) p.getX(), (int) p.getY())));
