@@ -61,7 +61,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarkerClickListener, LocationSource.OnLocationChangedListener, HeadingListener{
+public class MapsActivity extends FragmentActivity implements LocationSource.OnLocationChangedListener, HeadingListener{
 
     //region Fields and Constants
 
@@ -140,110 +140,37 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     }
 
     private void setUpMap() {
-
         mMap.setMyLocationEnabled(true);
         mMap.setOnCameraChangeListener(cameraListener);
         mMap.setBuildingsEnabled(true);
         mMap.setIndoorEnabled(true);
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
         mMap.getUiSettings().setCompassEnabled(false);
-        mMap.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
-            @Override
-            public void onMyLocationChange(Location location) {
-                if (firstLoad) {
-                    CameraPosition position = new CameraPosition.Builder().target(new LatLng(location.getLatitude(), location.getLongitude()))
-                            .zoom(18f)
-                            .bearing(0)
-                            .tilt(0)
-                            .build();
-                    mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
-                    firstLoad = false;
-                }
-                //pointsOnRoute.add(new LatLng(location.getLatitude(), location.getLongitude()));
-                //updatePath();
-            }
-        });
-
-        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(LatLng latLng) {
-                if (marker != null) {
-                    marker.remove();
-                }
-                marker = mMap.addMarker(new MarkerOptions().position(latLng));
-                mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng), new GoogleMap.CancelableCallback() {
-                    @Override
-                    public void onFinish() {
-                        expandMenu.expand();
-                    }
-
-                    @Override
-                    public void onCancel() {
-
-                    }
-                });
-            }
-        });
-
-        mMap.setOnMarkerClickListener(this);
+        mMap.setOnMyLocationChangeListener(onMyLocationChangeListener);
+        mMap.setOnMapClickListener(onMapClickListener);
+        mMap.setOnMarkerClickListener(onMarkerClickListener);
     }
 
     private void setupGUI() {
         getActionBar().hide();
 
-        //Find the buttons
-        mPlusOneButton = (FloatingActionButton) findViewById(R.id.upButton);
-        mMinusOneButton = (FloatingActionButton) findViewById(R.id.downButton);
-
-        // Find FloorView
         floorView = (TextView) findViewById(R.id.floorView);
         floorView.setShadowLayer(16, 4, 4, Color.BLACK);
+        floorView.setVisibility(View.INVISIBLE);
 
-        mPlusOneButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        mPlusOneButton = (FloatingActionButton) findViewById(R.id.upButton);
+        mPlusOneButton.setOnClickListener(plusButtonClickListener);
+        mPlusOneButton.setVisibility(View.INVISIBLE);
 
-                if (currentFloor < currentFloorNumbers) { // TODO: Should not exceed max floors
-                    currentFloor++;
-
-                    floorView.setText(String.valueOf(currentFloor));
-
-                    changeFloor(currentFloor);
-                }
-            }
-        });
-
-        mMinusOneButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                currentFloor--; // TODO: should not exceed the minimum floor level
-                floorView.setText(String.valueOf(currentFloor));
-
-                changeFloor(currentFloor);
-            }
-        });
+        mMinusOneButton = (FloatingActionButton) findViewById(R.id.downButton);
+        mMinusOneButton.setOnClickListener(minusButtonClickListener);
+        mMinusOneButton.setVisibility(View.INVISIBLE);
 
         expandMenu = (FloatingActionsMenu) findViewById(R.id.right_menu);
         expandMenu.setSoundEffectsEnabled(true);
 
         editButton = (FloatingActionButton) findViewById(R.id.editButton);
-        editButton.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                CameraPosition position = new CameraPosition.Builder().target(new LatLng(37.871223, -122.259060))
-                        .zoom(18f)
-                        .bearing(0)
-                        .tilt(0)
-                        .build();
-                mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
-            }
-        });
-
-        mMinusOneButton.setVisibility(View.INVISIBLE);
-        mPlusOneButton.setVisibility(View.INVISIBLE);
-        floorView.setVisibility(View.INVISIBLE);
-
+        editButton.setOnClickListener(editButtonClickListener);
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -670,16 +597,91 @@ public class MapsActivity extends FragmentActivity implements GoogleMap.OnMarker
     //endregion
 
     //region Listeners
-    @Override
-    public boolean onMarkerClick(Marker marker) {
-        if (marker != null) {
-            marker.remove();
-            expandMenu.collapse();
-        }
-        return true;
-    }
-
     Marker marker;
+
+    GoogleMap.OnMarkerClickListener onMarkerClickListener = new GoogleMap.OnMarkerClickListener() {
+        @Override
+        public boolean onMarkerClick(Marker marker) {
+            if (marker != null) {
+                marker.remove();
+                expandMenu.collapse();
+            }
+            return true;
+        }
+    };
+
+    GoogleMap.OnMyLocationChangeListener onMyLocationChangeListener = new GoogleMap.OnMyLocationChangeListener() {
+        @Override
+        public void onMyLocationChange(Location location) {
+            if (firstLoad) {
+                CameraPosition position = new CameraPosition.Builder().target(new LatLng(location.getLatitude(), location.getLongitude()))
+                        .zoom(18f)
+                        .bearing(0)
+                        .tilt(0)
+                        .build();
+                mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+                firstLoad = false;
+            }
+        }
+    };
+
+    GoogleMap.OnMapClickListener onMapClickListener = new GoogleMap.OnMapClickListener() {
+        @Override
+        public void onMapClick(LatLng latLng) {
+            if (marker != null) {
+                marker.remove();
+            }
+            marker = mMap.addMarker(new MarkerOptions().position(latLng));
+            mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng), new GoogleMap.CancelableCallback() {
+                @Override
+                public void onFinish() {
+                    expandMenu.expand();
+                }
+
+                @Override
+                public void onCancel() {
+
+                }
+            });
+        }
+    };
+
+
+    View.OnClickListener minusButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            currentFloor--; // TODO: should not exceed the minimum floor level
+            floorView.setText(String.valueOf(currentFloor));
+
+            changeFloor(currentFloor);
+        }
+    };
+
+    View.OnClickListener plusButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            if (currentFloor < currentFloorNumbers) { // TODO: Should not exceed max floors
+                currentFloor++;
+
+                floorView.setText(String.valueOf(currentFloor));
+
+                changeFloor(currentFloor);
+            }
+        }
+    };
+
+    View.OnClickListener editButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            CameraPosition position = new CameraPosition.Builder().target(new LatLng(37.871223, -122.259060))
+                    .zoom(18f)
+                    .bearing(0)
+                    .tilt(0)
+                    .build();
+            mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
+        }
+    };
+
     @Override
     public void onLocationChanged(Location location) {
 
