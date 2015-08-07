@@ -13,6 +13,9 @@ import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListe
 import com.example.krisma.architek.deadreckoning.utils.EvictingQueue;
 import com.google.android.gms.maps.LocationSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +23,8 @@ import java.util.List;
  * Created by smp on 14/07/15.
  */
 public class HeadingTracker implements SensorEventListener, LocationSource.OnLocationChangedListener {
+
+    private static final Logger log = LoggerFactory.getLogger(HeadingTracker.class);
 
     private SensorManager mSensorManager;
     private Sensor accelerometer;
@@ -100,7 +105,7 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
                     updateListeners(average);
                     lastUpdate = average;
                     updateTimeBoundary = System.currentTimeMillis();
-                    Log.d("Heading", "H: " + average);
+                    log.debug("Heading", "H: " + average);
 
                 }
 

@@ -61,6 +61,7 @@ public class AsyncSetFocusBuilding extends AsyncTask<LatLng, Void, Boolean> {
             ;
             Log.d("test", jObject.toString());
 
+            //TODO : Move to OnPostExecute
             overlayHelper.setCurrentBuildingMaps(jObject.getJSONArray("floors"));
             log.info(overlayHelper.getCurrentBuildingMaps().toString());
 

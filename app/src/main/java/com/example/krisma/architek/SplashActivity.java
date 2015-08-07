@@ -21,7 +21,7 @@ public class SplashActivity extends Activity {
     private CallbackManager callbackManager;
 
 
-    private boolean DEBUGGING = true;
+    private boolean DEBUGGING = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,8 +67,6 @@ public class SplashActivity extends Activity {
                 }
             }, 1500);
         }
-
-
     }
 
     @Override

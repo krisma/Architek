@@ -74,9 +74,11 @@ public class DebugActivity extends Activity {
             // cast its IBinder to a concrete class and directly access it.
             deadReckoning = ((DeadReckoning.LocalBinder)service).getService();
             deadReckoning.setActivity(DebugActivity.this);
+            log.info("Dead Reckoning Ready.");
 
 
         }
+
 
         public void onServiceDisconnected(ComponentName className) {
             // This is called when the connection with the service has been

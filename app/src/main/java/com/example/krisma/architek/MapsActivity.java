@@ -143,6 +143,7 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
     };
 
     private void onDeadReckoningReady(){
+        log.debug("Dead Reckoning Ready.");
         deadReckoning.setActivity(MapsActivity.this);
         deadReckoning.getHeadingTracker().addListener(MapsActivity.this);
         deadReckoning.getLocationTracker().addListener(MapsActivity.this);

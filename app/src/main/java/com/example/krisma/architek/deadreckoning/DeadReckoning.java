@@ -204,7 +204,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     };
 
     boolean indoor = false;
-    boolean DEBUGGING = true;
+    boolean DEBUGGING = false;
 
     public void transitionToIndoor() {
         if(DEBUGGING){
