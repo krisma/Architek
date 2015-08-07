@@ -27,7 +27,6 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
 
     float[] mGravity;
     float[] mGeomagnetic;
-    private float azimut;
     private ArrayList<HeadingListener> listeners = new ArrayList<>();
     private GeomagneticField geoField;
 
@@ -121,8 +120,6 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
 
         return result;
     }
-
-
 
 
     @Override

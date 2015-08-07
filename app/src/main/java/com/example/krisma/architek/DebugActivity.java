@@ -63,8 +63,6 @@ public class DebugActivity extends Activity {
         oiv.setY(0);
 
         log.info("W: {}, H: {} -- W: {}, H: {}, A: {} ({}) -- Scaled Height: {}", width, height, bitmap.getWidth(), bitmap.getHeight(), aspect, bitmap.getWidth()/bitmap.getHeight(), (int)(width * aspect));
-
-
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {

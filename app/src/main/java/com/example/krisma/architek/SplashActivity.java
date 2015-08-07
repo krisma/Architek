@@ -4,9 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.ImageView;
 
 import com.facebook.AccessToken;
@@ -16,10 +13,9 @@ import com.facebook.appevents.AppEventsLogger;
 import com.facebook.login.LoginManager;
 
 import java.util.Arrays;
-import java.util.Map;
 
 
-public class SplashActivity extends Activity{
+public class SplashActivity extends Activity {
 
 
     private CallbackManager callbackManager;
@@ -37,10 +33,10 @@ public class SplashActivity extends Activity{
 
         final Activity thisActivity = this;
 
-        if(DEBUGGING) {
+        if (DEBUGGING) {
             Intent i = new Intent(thisActivity, DebugActivity.class);
             thisActivity.startActivity(i);
-        } else  if(AccessToken.getCurrentAccessToken() != null){
+        } else if (AccessToken.getCurrentAccessToken() != null) {
             LoginManager.getInstance().logInWithReadPermissions(this, Arrays.asList("public_profile", "user_friends"));
             new Handler().postDelayed(new Runnable() {
                 @Override
@@ -49,9 +45,8 @@ public class SplashActivity extends Activity{
                     image.animate().alpha(0).setDuration(3000).withEndAction(new Runnable() {
                         @Override
                         public void run() {
-
-                                Intent i = new Intent(thisActivity, MapsActivity.class);
-                                thisActivity.startActivity(i);
+                            Intent i = new Intent(thisActivity, MapsActivity.class);
+                            thisActivity.startActivity(i);
 
                         }
                     }).start();
@@ -97,15 +92,5 @@ public class SplashActivity extends Activity{
 
         // Logs 'app deactivate' App Event.
         AppEventsLogger.deactivateApp(this);
-    }
-
-    @Override
-    public void onBackPressed() {
-        if(!this.getClass().equals(SplashActivity.class)) {
-            Intent setIntent = new Intent(this, SplashActivity.class);
-            startActivity(setIntent);
-        } else {
-            super.onBackPressed();
-        }
     }
 }

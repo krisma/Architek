@@ -2,10 +2,8 @@ package com.example.krisma.architek.deadreckoning;
 
 import android.app.Activity;
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
@@ -13,7 +11,6 @@ import android.location.Location;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.example.krisma.architek.DebugActivity;
@@ -27,14 +24,10 @@ import com.example.krisma.architek.deadreckoning.trackers.MovementTracker;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.MoveListener;
 import com.example.krisma.architek.deadreckoning.utils.Mapper;
-import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.TileOverlay;
-import com.google.android.gms.maps.model.TileOverlayOptions;
-import com.google.maps.android.heatmaps.HeatmapTileProvider;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -92,7 +85,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
 
     public void setPosition(LatLng position) {
         Point point = mapper.latLngToRotatedPoint(position);
-        particleSet = new ParticleSet(mContext, 1000, mapsActivity.getCurrentOverlayBitmap(), point.x, point.y);
+        particleSet = new ParticleSet(mContext, 1000, mapsActivity.getOverlayHelper().getCurrentOverlayBitmap(), point.x, point.y);
     }
 
 
@@ -183,7 +176,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
                 Pose p = particleSet.getParticles()[i].getPose();
                 locs.add(mapper.pointToLatLng(new Point((int) p.getX(), (int) p.getY())));
             }
-            mapsActivity.showParticles(locs);
+            mapsActivity.overlayHelper.showParticles(locs, mapsActivity);
         } else {
             log.warn("showParticlesOnMap error! null or empty particle set.");
         }
@@ -235,7 +228,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
             indoor = true;
             Log.d("Transition", "Started");
 
-            if (location == null || mapsActivity.getCurrentOverlayURL() == null || overlay == null) {
+            if (location == null || mapsActivity.getOverlayHelper().getCurrentOverlayURL() == null || overlay == null) {
                 retryTransition();
                 Log.d("Transition", "Null");
             } else {
@@ -248,7 +241,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
 
                 Bitmap bitmap = null;
                 try {
-                    bitmap = mapsActivity.getCurrentOverlayBitmap();
+                    bitmap = mapsActivity.getOverlayHelper().getCurrentOverlayBitmap();
 
                     // Transformation to the Image
                     Point iCenter = new Point(bitmap.getWidth() / 2, bitmap.getHeight() / 2);
@@ -282,12 +275,12 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
                             log.info("Overlay Width : {} - Height : {}", overlay.getWidth(), overlay.getHeight());
 
                             LatLng testCoord = new LatLng(37.871174, -122.258860);
-                            mapsActivity.getMmap().addMarker(new MarkerOptions()
+                            mapsActivity.getMap().addMarker(new MarkerOptions()
                                     .position(testCoord)
                                     .title("Test"));
 
                             LatLng testCoord2 = new LatLng(37.871528, -122.258858);
-                            mapsActivity.getMmap().addMarker(new MarkerOptions()
+                            mapsActivity.getMap().addMarker(new MarkerOptions()
                                     .position(testCoord2)
                                     .title("Tes2"));
 
@@ -351,7 +344,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     private JSONObject getCorners() {
         JSONObject corners = null;
         try {
-            corners = mapsActivity.getCurrentBuilding().getJSONObject("fourCoordinates");
+            corners = mapsActivity.getOverlayHelper().getCurrentBuilding().getJSONObject("fourCoordinates");
         } catch (JSONException e) {
             e.printStackTrace();
         }
