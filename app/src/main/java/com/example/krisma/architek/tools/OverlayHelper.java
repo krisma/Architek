@@ -134,18 +134,22 @@ public class OverlayHelper {
     //region Methods
     public LatLng detectOverlay(LatLng currentLocation) {
         log.debug("Called: detectOverlay");
-        for (int i = 0; i < mapsActivity.getOverlayHelper().getCoordinatesHash().length(); i++) {
-            try {
-                LatLngBounds bounds = Helper.getBoundsFromJSONObject(mapsActivity.getOverlayHelper().getCoordinatesHash().getJSONObject(i)
-                        .getJSONObject("twoCoordinates"));
-                log.debug("coordinates : {}", bounds.toString());
-                if (bounds.contains(currentLocation) && bounds != mapsActivity.getCurrentBounds()) {
-                    mapsActivity.setCurrentBounds(bounds);
-                    return Helper.getLagLngFromLngLat(mapsActivity.getOverlayHelper().getCoordinatesHash().getJSONObject(i).getJSONArray("location"));
-                }
 
-            } catch (JSONException e) {
-                e.printStackTrace();
+        JSONArray buildings = getCoordinatesHash();
+        if(buildings != null) {
+            for (int i = 0; i < buildings.length(); i++) {
+                try {
+                    LatLngBounds bounds = Helper.getBoundsFromJSONObject(buildings.getJSONObject(i)
+                            .getJSONObject("twoCoordinates"));
+                    log.debug("coordinates : {}", bounds.toString());
+                    if (bounds.contains(currentLocation) && bounds != mapsActivity.getCurrentBounds()) {
+                        mapsActivity.setCurrentBounds(bounds);
+                        return Helper.getLagLngFromLngLat(buildings.getJSONObject(i).getJSONArray("location"));
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         }
 

@@ -23,10 +23,12 @@ public class AsyncUpdateCoordinatesHash extends AsyncTask<String, Void, JSONArra
     private final OverlayHelper overlayHelper;
 
         private final LatLng target;
+    private final AsyncTaskListener listener;
 
-        public AsyncUpdateCoordinatesHash(OverlayHelper overlayHelper, LatLng target) {
+    public AsyncUpdateCoordinatesHash(OverlayHelper overlayHelper, LatLng target, AsyncTaskListener listener) {
             this.overlayHelper = overlayHelper;
             this.target = target;
+            this.listener = listener;
         }
 
         @Override
@@ -72,6 +74,7 @@ public class AsyncUpdateCoordinatesHash extends AsyncTask<String, Void, JSONArra
         protected void onPostExecute(JSONArray result) {
             overlayHelper.setCoordinatesHash(result);
             overlayHelper.updateOverlays();
+            listener.onTaskCompleted();
         }
 
         @Override

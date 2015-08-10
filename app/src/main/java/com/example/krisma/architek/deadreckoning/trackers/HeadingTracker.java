@@ -138,7 +138,7 @@ public class HeadingTracker implements SensorEventListener, LocationSource.OnLoc
 
     private void updateListeners(float heading){
         for(HeadingListener listener : listeners){
-            listener.onHeadingChange(heading);
+            listener.onHeadingChanged(heading);
         }
     }
 

@@ -27,6 +27,7 @@ public class MyLocationChangedListener {
                             .build();
                     mapsActivity.getmMap().moveCamera(CameraUpdateFactory.newCameraPosition(position));
                     mapsActivity.setFirstLoad(false);
+                    mapsActivity.setupCameraListener(position);
                 }
             }
         };

@@ -183,7 +183,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     }
 
     @Override
-    public void onHeadingChange(float heading) {
+    public void onHeadingChanged(float heading) {
         this.heading = heading;
     }
 

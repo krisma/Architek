@@ -5,6 +5,6 @@ package com.example.krisma.architek.deadreckoning.trackers.listeners;
  */
 public interface HeadingListener {
 
-    void onHeadingChange(float heading);
+    void onHeadingChanged(float heading);
 
 }

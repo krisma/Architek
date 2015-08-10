@@ -27,6 +27,8 @@ public class AsyncSetFocusBuilding extends AsyncTask<LatLng, Void, Boolean> {
     private static final Logger log = LoggerFactory.getLogger(AsyncSetFocusBuilding.class);
     private final OverlayHelper overlayHelper;
     private final MapsActivity mapsActivity;
+    private JSONObject jObject = null;
+    private LatLng location;
 
     public AsyncSetFocusBuilding(MapsActivity mapsActivity){
         this.mapsActivity = mapsActivity;
@@ -34,13 +36,15 @@ public class AsyncSetFocusBuilding extends AsyncTask<LatLng, Void, Boolean> {
     }
     @Override
     protected Boolean doInBackground(LatLng... params) {
-        Log.i("Call", "Called: setFocusBuilding");
+        location = params[0];
+
+        log.debug("Called: setFocusBuilding");
         URL url;
         final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(mapsActivity.getBaseContext());
         String token = getPrefs.getString("token", "");
-        InputStream is = null;
+        InputStream is;
         HttpURLConnection con = null;
-        String param = String.valueOf(params[0].latitude) + "," + String.valueOf(params[0].longitude);
+        String param = String.valueOf(location.latitude) + "," + String.valueOf(location.longitude);
 
         try {
             url = new URL("https://architek-server.herokuapp.com/getbuildingmaps?" +
@@ -52,41 +56,49 @@ public class AsyncSetFocusBuilding extends AsyncTask<LatLng, Void, Boolean> {
 
             int responseCode = con.getResponseCode();
             is = con.getInputStream();
-            JSONObject jObject = null;
-            try {
-                jObject = new JSONObject(Helper.convertStreamToString(is));
-            } catch (JSONException f) {
-                f.printStackTrace();
-            }
-            ;
-            Log.d("test", jObject.toString());
 
-            //TODO : Move to OnPostExecute
-            overlayHelper.setCurrentBuildingMaps(jObject.getJSONArray("floors"));
-            log.info(overlayHelper.getCurrentBuildingMaps().toString());
+            jObject = new JSONObject(Helper.convertStreamToString(is));
 
-            overlayHelper.setCurrentFloorNumbers(overlayHelper.getCurrentBuildingMaps().length());
-            overlayHelper.setCurrentBuildingLocation(params[0]);
-
-            overlayHelper.setCurrentFloor(0);
-            mapsActivity.getFloorView().setText(0 + "");
-            mapsActivity.getFloorView().invalidate();
-
-            mapsActivity.showFloorButtons(true);
-
-            overlayHelper.overlayCurrentFloor();
-
+            log.debug(jObject.toString());
 
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             try {
-                con.disconnect();
+                if(con != null) {
+                    con.disconnect();
+                }
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
         return false;
+    }
+
+
+    @Override
+    protected void onPostExecute(Boolean success){
+        if(success) {
+            try {
+                overlayHelper.setCurrentBuildingMaps(jObject.getJSONArray("floors"));
+                log.info(overlayHelper.getCurrentBuildingMaps().toString());
+
+                overlayHelper.setCurrentFloorNumbers(overlayHelper.getCurrentBuildingMaps().length());
+                overlayHelper.setCurrentBuildingLocation(location);
+
+                overlayHelper.setCurrentFloor(0);
+                mapsActivity.getFloorView().setText(0 + "");
+                mapsActivity.getFloorView().invalidate();
+
+                mapsActivity.showFloorButtons(true);
+
+                overlayHelper.overlayCurrentFloor();
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        log.debug("Execution failed. PostExecute aborted. (setFocusBuilding)");
     }
 }

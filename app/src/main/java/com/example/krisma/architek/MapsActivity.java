@@ -31,6 +31,7 @@ import com.getbase.floatingactionbutton.FloatingActionsMenu;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -46,13 +47,6 @@ import java.util.List;
 
 
 public class MapsActivity extends FragmentActivity implements LocationSource.OnLocationChangedListener, HeadingListener {
-    final MarkerClickListener markerClickListener = new MarkerClickListener(this);
-    final MyLocationChangedListener myLocationChangedListener = new MyLocationChangedListener(this);
-    final MapClickListener mapClickListener = new MapClickListener(this);
-    final CameraChangedListener cameraChangedListener = new CameraChangedListener(this);
-    final FloorDownButtonClickListener floorDownButtonClickListener = new FloorDownButtonClickListener(this);
-    final FloorUpButtonClickListener floorUpButtonClickListener = new FloorUpButtonClickListener(this);
-    final EditButtonClickListener editButtonClickListener = new EditButtonClickListener(this);
 
     //region Initialization
 
@@ -66,6 +60,7 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         this.startService(i);
 
         // setup is done in the OnServiceConnected callback to ensure object-pointers
+        setupListeners();
         setUpMapIfNeeded();
         setupGUI();
 
@@ -95,9 +90,19 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         }
     }
 
+    private void setupListeners(){
+        markerClickListener = new MarkerClickListener(this);
+        myLocationChangedListener = new MyLocationChangedListener(this);
+        mapClickListener = new MapClickListener(this);
+        cameraChangedListener = new CameraChangedListener(this);
+        floorDownButtonClickListener = new FloorDownButtonClickListener(this);
+        floorUpButtonClickListener = new FloorUpButtonClickListener(this);
+        editButtonClickListener = new EditButtonClickListener(this);
+    }
+
     private void setUpMap() {
         mMap.setMyLocationEnabled(true);
-        mMap.setOnCameraChangeListener(cameraChangedListener.getCameraListener());
+        //mMap.setOnCameraChangeListener(cameraChangedListener.getCameraListener());
         mMap.setBuildingsEnabled(true);
         mMap.setIndoorEnabled(true);
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
@@ -130,7 +135,6 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         editButton.setOnClickListener(editButtonClickListener.getEditButtonClickListener());
     }
 
-
     private ServiceConnection mConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
             deadReckoning = ((DeadReckoning.LocalBinder) service).getService();
@@ -148,6 +152,11 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         deadReckoning.getHeadingTracker().addListener(MapsActivity.this);
         deadReckoning.getLocationTracker().addListener(MapsActivity.this);
         mMap.setLocationSource(deadReckoning.getLocationTracker());
+    }
+
+    public void setupCameraListener(CameraPosition cameraPosition) {
+        mMap.setOnCameraChangeListener(cameraChangedListener.getCameraListener());
+        cameraChangedListener.updateBuildings(cameraPosition);
     }
 
     //endregion
@@ -173,6 +182,7 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         line = mMap.addPolyline(options);
     }
 
+
     @Override
     public void onLocationChanged(Location location) {
 
@@ -191,7 +201,7 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
     }
 
     @Override
-    public void onHeadingChange(float heading) {
+    public void onHeadingChanged(float heading) {
 
         // used to rotate the map according to heading
 
@@ -307,6 +317,18 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
     private List<LatLng> pointsOnRoute = new ArrayList<>();
 
     private Polyline line;
+
+    private MarkerClickListener markerClickListener;
+    MyLocationChangedListener myLocationChangedListener;
+    MapClickListener mapClickListener;
+    CameraChangedListener cameraChangedListener;
+    FloorDownButtonClickListener floorDownButtonClickListener;
+    FloorUpButtonClickListener floorUpButtonClickListener;
+    EditButtonClickListener editButtonClickListener;
+
+
+
+
 
     //endregion
 }
