@@ -5,10 +5,12 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.app.FragmentActivity;
 import android.view.View;
@@ -17,7 +19,7 @@ import android.widget.TextView;
 import com.example.krisma.architek.deadreckoning.DeadReckoning;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
 import com.example.krisma.architek.listeners.CameraChangedListener;
-import com.example.krisma.architek.listeners.EditButtonClickListener;
+import com.example.krisma.architek.listeners.PictureButtonClickListener;
 import com.example.krisma.architek.listeners.FloorDownButtonClickListener;
 import com.example.krisma.architek.listeners.FloorUpButtonClickListener;
 import com.example.krisma.architek.listeners.MapClickListener;
@@ -25,6 +27,7 @@ import com.example.krisma.architek.listeners.MarkerClickListener;
 import com.example.krisma.architek.listeners.MyLocationChangedListener;
 import com.example.krisma.architek.tools.FB;
 import com.example.krisma.architek.tools.OverlayHelper;
+import com.example.krisma.architek.vision.FloorplanProcessor;
 import com.facebook.Profile;
 import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.getbase.floatingactionbutton.FloatingActionsMenu;
@@ -37,18 +40,30 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.gms.maps.model.TileOverlay;
 
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 public class MapsActivity extends FragmentActivity implements LocationSource.OnLocationChangedListener, HeadingListener {
 
     //region Initialization
+
+    static {
+        if (!OpenCVLoader.initDebug()) {
+            // Handle initialization error
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,7 +112,7 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         cameraChangedListener = new CameraChangedListener(this);
         floorDownButtonClickListener = new FloorDownButtonClickListener(this);
         floorUpButtonClickListener = new FloorUpButtonClickListener(this);
-        editButtonClickListener = new EditButtonClickListener(this);
+        pictureButtonClickListener = new PictureButtonClickListener(this);
     }
 
     private void setUpMap() {
@@ -132,7 +147,7 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         expandMenu.setSoundEffectsEnabled(true);
 
         FloatingActionButton editButton = (FloatingActionButton) findViewById(R.id.editButton);
-        editButton.setOnClickListener(editButtonClickListener.getEditButtonClickListener());
+        editButton.setOnClickListener(pictureButtonClickListener.getPicButtonClickListener());
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -182,6 +197,38 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         line = mMap.addPolyline(options);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            new Handler().post(new Runnable() {
+                @Override
+                public void run() {
+                    Bundle extras = data.getExtras();
+                    Bitmap imageBitmap = (Bitmap) extras.get("data");
+
+
+
+                    // Convert to Matrix
+                    //Mat imgMAT = new Mat (imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8UC1);
+                    Mat tmp = new Mat();
+                    Utils.bitmapToMat(imageBitmap, tmp);
+
+                    // Detect Edges
+                    FloorplanProcessor processor = new FloorplanProcessor();
+                    Mat edgedMAT = processor.detectEdges(tmp);
+
+                    // Convert to Bitmap
+                    Bitmap edgedBitmap = Bitmap.createBitmap(imageBitmap.getWidth(), imageBitmap.getHeight(), Bitmap.Config.ARGB_8888);
+                    Utils.matToBitmap(edgedMAT, edgedBitmap);
+
+                    Intent intent = new Intent(MapsActivity.this, PreviewActivity.class);
+                    Bundle bundle = new Bundle();
+                    bundle.putParcelable("bitmap", edgedBitmap);
+                    MapsActivity.this.startActivity(intent);
+                }
+            });
+        }
+    }
 
     @Override
     public void onLocationChanged(Location location) {
@@ -222,6 +269,26 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
         */
     }
+
+    private BaseLoaderCallback mOpenCVCallBack = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    log.info("OpenCV loaded successfully");
+
+                } break;
+
+
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
+
 
     //region Getters and Setters
     public void setCurrentBounds(LatLngBounds currentBounds) {
@@ -296,13 +363,13 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
     //region Fields and Constants
     private static final Logger log = LoggerFactory.getLogger(MapsActivity.class);
     public final OverlayHelper overlayHelper = new OverlayHelper(this);
+    static final int REQUEST_IMAGE_CAPTURE = 1;
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
 
-    private LatLng lastPosition = new LatLng(0, 0);
     private DeadReckoning deadReckoning;
     private boolean firstLoad = true;
-    private Marker marker;
+
     private long lastOverlayDetect = System.currentTimeMillis();
     private LatLngBounds currentBounds;
 
@@ -311,20 +378,21 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
     private FloatingActionButton mPlusOneButton;
     private TextView floorView;
 
+    private LatLng lastPosition = new LatLng(0, 0);
     private Location lastLocation = new Location(LocationManager.GPS_PROVIDER);
     private Location currentLocation;
 
     private List<LatLng> pointsOnRoute = new ArrayList<>();
-
+    private Marker marker;
     private Polyline line;
 
     private MarkerClickListener markerClickListener;
-    MyLocationChangedListener myLocationChangedListener;
-    MapClickListener mapClickListener;
-    CameraChangedListener cameraChangedListener;
-    FloorDownButtonClickListener floorDownButtonClickListener;
-    FloorUpButtonClickListener floorUpButtonClickListener;
-    EditButtonClickListener editButtonClickListener;
+    private MyLocationChangedListener myLocationChangedListener;
+    private MapClickListener mapClickListener;
+    private CameraChangedListener cameraChangedListener;
+    private FloorDownButtonClickListener floorDownButtonClickListener;
+    private FloorUpButtonClickListener floorUpButtonClickListener;
+    private PictureButtonClickListener pictureButtonClickListener;
 
 
 

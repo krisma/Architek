@@ -1,7 +1,6 @@
 package com.example.krisma.architek.listeners;
 
 import android.os.AsyncTask;
-import android.util.Log;
 
 import com.example.krisma.architek.MapsActivity;
 import com.example.krisma.architek.asynctasks.AsyncSetFocusBuilding;
@@ -67,7 +66,6 @@ public class CameraChangedListener {
                         }
                     }
                 }
-
             }
 
         };
@@ -89,7 +87,6 @@ public class CameraChangedListener {
         });
         task.execute();
     }
-
 
     private void focusBuilding(CameraPosition cameraPosition) {
         LatLng tmp = helper.detectOverlay(cameraPosition.target);
