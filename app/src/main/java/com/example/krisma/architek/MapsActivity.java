@@ -27,7 +27,6 @@ import com.example.krisma.architek.listeners.MarkerClickListener;
 import com.example.krisma.architek.listeners.MyLocationChangedListener;
 import com.example.krisma.architek.tools.FB;
 import com.example.krisma.architek.tools.OverlayHelper;
-import com.example.krisma.architek.vision.FloorplanProcessor;
 import com.facebook.Profile;
 import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.getbase.floatingactionbutton.FloatingActionsMenu;
@@ -41,29 +40,16 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
-import org.opencv.android.BaseLoaderCallback;
-import org.opencv.android.LoaderCallbackInterface;
-import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 
 public class MapsActivity extends FragmentActivity implements LocationSource.OnLocationChangedListener, HeadingListener {
 
     //region Initialization
-
-    static {
-        if (!OpenCVLoader.initDebug()) {
-            // Handle initialization error
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -206,24 +192,10 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
                     Bundle extras = data.getExtras();
                     Bitmap imageBitmap = (Bitmap) extras.get("data");
 
-
-
-                    // Convert to Matrix
-                    //Mat imgMAT = new Mat (imageBitmap.getHeight(), imageBitmap.getWidth(), CvType.CV_8UC1);
-                    Mat tmp = new Mat();
-                    Utils.bitmapToMat(imageBitmap, tmp);
-
-                    // Detect Edges
-                    FloorplanProcessor processor = new FloorplanProcessor();
-                    Mat edgedMAT = processor.detectEdges(tmp);
-
-                    // Convert to Bitmap
-                    Bitmap edgedBitmap = Bitmap.createBitmap(imageBitmap.getWidth(), imageBitmap.getHeight(), Bitmap.Config.ARGB_8888);
-                    Utils.matToBitmap(edgedMAT, edgedBitmap);
-
                     Intent intent = new Intent(MapsActivity.this, PreviewActivity.class);
                     Bundle bundle = new Bundle();
-                    bundle.putParcelable("bitmap", edgedBitmap);
+                    bundle.putParcelable("bitmap", imageBitmap);
+                    intent.putExtra("bitmapBundle", bundle);
                     MapsActivity.this.startActivity(intent);
                 }
             });
@@ -269,26 +241,6 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         mMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
         */
     }
-
-    private BaseLoaderCallback mOpenCVCallBack = new BaseLoaderCallback(this) {
-        @Override
-        public void onManagerConnected(int status) {
-            switch (status) {
-                case LoaderCallbackInterface.SUCCESS:
-                {
-                    log.info("OpenCV loaded successfully");
-
-                } break;
-
-
-                default:
-                {
-                    super.onManagerConnected(status);
-                } break;
-            }
-        }
-    };
-
 
     //region Getters and Setters
     public void setCurrentBounds(LatLngBounds currentBounds) {

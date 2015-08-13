@@ -1,5 +1,6 @@
 package com.example.krisma.architek;
 
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -8,38 +9,20 @@ import android.view.MenuItem;
 import android.widget.ImageView;
 
 
-public class PreviewActivity extends ActionBarActivity {
+public class PreviewActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_preview);
-
-        Bitmap imageBitmap = (Bitmap) savedInstanceState.get("data");
-
-        ImageView preview = (ImageView) findViewById(R.id.preview);
-        preview.setImageBitmap(imageBitmap);
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_preview, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        
+        Bundle bundle = getIntent().getBundleExtra("bitmapBundle");
+        if(bundle != null){
+            Bitmap imageBitmap = (Bitmap) bundle.get("bitmap");
+            ImageView preview = (ImageView) findViewById(R.id.preview);
+            preview.setImageBitmap(imageBitmap);
         }
 
-        return super.onOptionsItemSelected(item);
     }
+
 }
