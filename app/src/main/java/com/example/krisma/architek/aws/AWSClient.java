@@ -2,6 +2,7 @@ package com.example.krisma.architek.aws;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.widget.Toast;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
@@ -81,9 +82,12 @@ public class AWSClient {
                     switch (state){
                         case COMPLETED:
                             log.info("Completed Upload.");
+                            Toast.makeText(context, "Upload Completed. Thank you for contributing!", Toast.LENGTH_LONG).show();
                             break;
                         case FAILED:
                             log.warn("Upload Failed!");
+                            Toast.makeText(context, "Upload Failed. Please try again.", Toast.LENGTH_LONG).show();
+
                             break;
                     }
                 }
