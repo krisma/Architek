@@ -16,6 +16,9 @@ import android.support.v4.app.FragmentActivity;
 import android.view.View;
 import android.widget.TextView;
 
+import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.regions.Regions;
+import com.example.krisma.architek.aws.AWSClient;
 import com.example.krisma.architek.deadreckoning.DeadReckoning;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
 import com.example.krisma.architek.listeners.CameraChangedListener;
@@ -45,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 public class MapsActivity extends FragmentActivity implements LocationSource.OnLocationChangedListener, HeadingListener {
@@ -71,6 +75,7 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
             log.info("Friends : {}", FB.getMyFriends());
         }
     }
+
 
     @Override
     protected void onResume() {
@@ -186,19 +191,14 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
     @Override
     protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            new Handler().post(new Runnable() {
-                @Override
-                public void run() {
-                    Bundle extras = data.getExtras();
-                    Bitmap imageBitmap = (Bitmap) extras.get("data");
+            Bundle extras = data.getExtras();
+            Bitmap imageBitmap = (Bitmap) extras.get("data");
 
-                    Intent intent = new Intent(MapsActivity.this, PreviewActivity.class);
-                    Bundle bundle = new Bundle();
-                    bundle.putParcelable("bitmap", imageBitmap);
-                    intent.putExtra("bitmapBundle", bundle);
-                    MapsActivity.this.startActivity(intent);
-                }
-            });
+            AWSClient client = new AWSClient(this);
+            Location loc = deadReckoning.getLocationTracker().getCurrentLocation();
+
+            client.uploadRawFloorplan(new LatLng(loc.getLatitude(), loc.getLongitude()), 1, imageBitmap); //TODO : Floor needs to be an input
+
         }
     }
 
