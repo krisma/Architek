@@ -28,7 +28,7 @@ import java.util.UUID;
  */
 public class AWSClient {
 
-    private static final String RAW_FLOORPLAN_BUCKET_KEY = "rawfloorplans";
+    private static final String RAW_FLOORPLAN_BUCKET_KEY = "unprocessedfloorplans";
 
     private static final Logger log = LoggerFactory.getLogger(AWSClient.class);
 
@@ -52,7 +52,7 @@ public class AWSClient {
         // Set the region of your S3 bucket
         s3.setRegion(Region.getRegion(Regions.EU_WEST_1));
 
-         transferUtility = new TransferUtility(s3, context);
+        transferUtility = new TransferUtility(s3, context);
 
     }
 
@@ -60,7 +60,7 @@ public class AWSClient {
 
     public void uploadRawFloorplan(LatLng location, int floor, Bitmap floorplan){
 
-        final String OBJECT_KEY = location.latitude + ";" + location.longitude + ";" + floor ;
+        final String OBJECT_KEY = location.latitude + ";" + location.longitude + ";" + floor + ".PNG";
         FileOutputStream outStream;
         try {
             File imageFile = new File(context.getCacheDir().getPath() + UUID.randomUUID());
