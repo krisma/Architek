@@ -18,13 +18,19 @@ import java.util.List;
  */
 public class Trip {
 
+    public LatLng getBuildingPosition() {
+        return buildingPosition;
+    }
+
+    private LatLng buildingPosition;
     private long startTime;
     private long endTime;
     private LatLng startPos;
     private LatLng endPos;
     private List<LatLng> positions = new ArrayList<>();
 
-    public Trip(long startTime, long endTime, LatLng startPos, LatLng endPos) {
+    public Trip(LatLng buildingPosition, long startTime, long endTime, LatLng startPos, LatLng endPos) {
+        this.buildingPosition = buildingPosition;
         this.startTime = startTime;
         this.endTime = endTime;
         this.startPos = startPos;
@@ -108,6 +114,7 @@ public class Trip {
     }
 
     public static class Builder {
+        private LatLng buildingPosition;
         private long startTime;
         private long endTime;
         private LatLng startPos;
@@ -133,8 +140,13 @@ public class Trip {
             return this;
         }
 
+        public Builder setBuildingPos(LatLng buildingPosition) {
+            this.buildingPosition = buildingPosition;
+            return this;
+        }
+
         public Trip createTrip() {
-            return new Trip(startTime, endTime, startPos, endPos);
+            return new Trip(buildingPosition, startTime, endTime, startPos, endPos);
         }
     }
 }

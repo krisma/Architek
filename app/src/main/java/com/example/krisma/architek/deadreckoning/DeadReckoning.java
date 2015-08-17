@@ -25,6 +25,7 @@ import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListe
 import com.example.krisma.architek.deadreckoning.trackers.listeners.MoveListener;
 import com.example.krisma.architek.deadreckoning.utils.Mapper;
 import com.example.krisma.architek.storing.model.Trip;
+import com.example.krisma.architek.tools.OverlayHelper;
 import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.LatLng;
@@ -198,10 +199,12 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     }
 
     public void transitionToIndoor() {
+        OverlayHelper helper = mapsActivity.getOverlayHelper();
 
         trip = new Trip.Builder()
                 .setStartPos(locationTracker.getCurrentLatLng())
                 .setStartTime(System.currentTimeMillis())
+                .setBuildingPos(helper.getCurrentBuildingLocation())
                 .createTrip();
 
         if (!DEBUGGING) {
@@ -220,7 +223,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
             indoor = true;
             Log.d("Transition", "Started");
 
-            if (location == null || mapsActivity.getOverlayHelper().getCurrentOverlayURL() == null || overlay == null) {
+            if (location == null || helper.getCurrentOverlayURL() == null || overlay == null) {
                 retryTransition();
                 Log.d("Transition", "Null");
 
@@ -229,7 +232,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
 
                 Bitmap bitmap;
                 try {
-                    bitmap = mapsActivity.getOverlayHelper().getCurrentOverlayBitmap();
+                    bitmap = helper.getCurrentOverlayBitmap();
 
                     mapper = new Mapper(                                                // Mapper responsible of coordinate transformations, needs 2 common points
                             new Point(bitmap.getWidth() / 2, bitmap.getHeight() / 2),   // Image Center
