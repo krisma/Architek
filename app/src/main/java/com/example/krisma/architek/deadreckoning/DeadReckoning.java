@@ -25,7 +25,6 @@ import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListe
 import com.example.krisma.architek.deadreckoning.trackers.listeners.MoveListener;
 import com.example.krisma.architek.deadreckoning.utils.Mapper;
 import com.example.krisma.architek.storing.model.Trip;
-import com.example.krisma.architek.storing.model.TripBuilder;
 import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.LatLng;
@@ -44,25 +43,34 @@ import java.util.List;
  */
 public class DeadReckoning extends Service implements MoveListener, HeadingListener, LocationSource {
 
+    private static final Logger log = LoggerFactory.getLogger(DeadReckoning.class);
+    boolean indoor = false;
+    boolean DEBUGGING = false;
+    
     //region Fields and Constants
     private Context mContext;
     private Mapper mapper;
-    private static final Logger log = LoggerFactory.getLogger(DeadReckoning.class);
 
     // Trackers
     private LocationTracker locationTracker;
     private MovementTracker movementTracker;
     private double heading;
-
     private ParticleSet particleSet;
     private HeadingTracker headingTracker;
     private GroundOverlay overlay;
     private MapsActivity mapsActivity;
     private Location drLocation;
-    private DebugActivity debugActivity;
-    private Trip trip;
 
     //endregion
+    private DebugActivity debugActivity;
+    private Trip trip;
+    private Runnable transitionToIndoorRunnable = new Runnable() {
+        @Override
+        public void run() {
+            transitionToIndoor();
+        }
+    };
+    private List<OnLocationChangedListener> onLocationChangedListeners = new ArrayList<>();
 
     //region Initialization
     public DeadReckoning() {
@@ -89,13 +97,6 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     public void setPosition(LatLng position) {
         Point point = mapper.latLngToRotatedPoint(position);
         particleSet = new ParticleSet(mContext, 1000, mapsActivity.getOverlayHelper().getCurrentOverlayBitmap(), point.x, point.y);
-    }
-
-
-    public class LocalBinder extends Binder {
-        public DeadReckoning getService() {
-            return DeadReckoning.this;
-        }
     }
 
     @Override
@@ -130,7 +131,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     @Override
     public void onMove(final Move m) {
 
-        if(particleSet == null && DEBUGGING){
+        if (particleSet == null && DEBUGGING) {
             particleSet = debugActivity.getOIV().getParticleSet();
         }
 
@@ -153,7 +154,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
             tmp.setDistance(d);
             particleSet.updateParticles(tmp);
 
-            if(DEBUGGING){
+            if (DEBUGGING) {
                 debugActivity.getOIV().displayParticles();
             } else {
                 // Transform back to Google Map -- Show location on Map by updating onLocationChangedListeners --> MapsActivity included
@@ -172,8 +173,8 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
         }
     }
 
-    public void showParticlesOnMap(){
-        if(particleSet != null && particleSet.getParticles().length > 0) {
+    public void showParticlesOnMap() {
+        if (particleSet != null && particleSet.getParticles().length > 0) {
             List<LatLng> locs = new ArrayList<>();
 
             for (int i = 0; i < particleSet.getParticles().length; i++) {
@@ -191,38 +192,19 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
         this.heading = heading;
     }
 
-    //endregion
-
-    //region Transitioning
-
     private void retryTransition() {
-        Log.w("Transition", "Location Was Null! Retrying in 2 seconds!");
+        Log.w("Transition", "Location Was Null! Retrying in 4 seconds!");
         new Handler().postDelayed(transitionToIndoorRunnable, 4000);
     }
 
-    private Runnable transitionToIndoorRunnable = new Runnable() {
-        @Override
-        public void run() {
-            transitionToIndoor();
-        }
-    };
-
-    boolean indoor = false;
-    boolean DEBUGGING = false;
-
     public void transitionToIndoor() {
 
-        trip = new TripBuilder()
+        trip = new Trip.Builder()
                 .setStartPos(locationTracker.getCurrentLatLng())
                 .setStartTime(System.currentTimeMillis())
                 .createTrip();
 
-        if(DEBUGGING){
-
-            // initialization is done in OverlayImageView
-
-        } else {
-
+        if (!DEBUGGING) {
             Location location;
 
             if (indoor && drLocation != null) {
@@ -241,30 +223,29 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
             if (location == null || mapsActivity.getOverlayHelper().getCurrentOverlayURL() == null || overlay == null) {
                 retryTransition();
                 Log.d("Transition", "Null");
+
             } else {
                 Log.d("Transition", "In progress");
-                LatLng loc = new LatLng(location.getLatitude(), location.getLongitude());
 
-
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-
-                Bitmap bitmap = null;
+                Bitmap bitmap;
                 try {
                     bitmap = mapsActivity.getOverlayHelper().getCurrentOverlayBitmap();
 
-                    // Transformation to the Image
-                    Point iCenter = new Point(bitmap.getWidth() / 2, bitmap.getHeight() / 2);
+                    mapper = new Mapper(                                                // Mapper responsible of coordinate transformations, needs 2 common points
+                            new Point(bitmap.getWidth() / 2, bitmap.getHeight() / 2),   // Image Center
+                            overlay.getPosition(),                                      // Overlay Center
+                            getCorners(),                                               // Overlay Corners
+                            overlay.getBearing());                                      // Overlay rotation/bearing
 
-                    LatLng oCenter = overlay.getPosition();
+                    // Initialise Particle Set on user location on Image
+                    LatLng loc = new LatLng(location.getLatitude(), location.getLongitude());
+                    Point startPoint = mapper.latlngToPoint(loc);
 
-                    log.info("Overlay Center: {}", oCenter);
-                    log.info("SW: {}", overlay.getBounds().southwest);
+                    log.info("Start location is {} on image.", startPoint);
+                    particleSet = new ParticleSet(mContext, 1000, bitmap, startPoint.x, startPoint.y);
 
-                    JSONObject corners = getCorners(); // SE, NW, NE, SW
-                    log.info("Corners JSON Obj : {}", corners);
-
-                    try {
+                    //region Old Debugging
+/*                    try {
                         LatLng C1 = new LatLng(corners.getJSONArray("coordinate1").getDouble(0), corners.getJSONArray("coordinate1").getDouble(1));
                         LatLng C2 = new LatLng(corners.getJSONArray("coordinate2").getDouble(0), corners.getJSONArray("coordinate2").getDouble(1));
                         LatLng C3 = new LatLng(corners.getJSONArray("coordinate3").getDouble(0), corners.getJSONArray("coordinate3").getDouble(1));
@@ -272,9 +253,8 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
 
                         log.info("Top Left (C1): {}, Top Right (C2): {}, Bottom Right (C3): {}, Bottom Left (C4): {}", C1, C2, C3, C4);
 
-                        float bearing = overlay.getBearing();
 
-                        mapper = new Mapper(iCenter, oCenter, C1, bearing);
+                        mapper = new Mapper(iCenter, oCenter, corners, bearing);
 
                         if (DEBUGGING) {
                             LatLng boundSW = overlay.getBounds().southwest;
@@ -294,6 +274,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
                                     .position(testCoord2)
                                     .title("Tes2"));
 
+                            //region Logging
                             log.info("Test Point estimated to {} on image", mapper.latLngToRotatedPoint(testCoord));
                             log.info("Test Point 2 estimated to {} on image", mapper.latLngToRotatedPoint(testCoord2));
                             log.info("Center Test {}", mapper.latLngToRotatedPoint(oCenter));
@@ -323,25 +304,19 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
                             log.info("South East on Image: {}", mapper.latlngToPoint(C3));
                             log.info("South West on Image: {}", mapper.latlngToPoint(C4));
 
-
                             log.info("North West Back and Forth : {}", mapper.pointToLatLng(mapper.latlngToPoint(C1)));
-
                             log.info("Rotation back and forth : {}", mapper.pointToRotatedLatLng(mapper.latLngToRotatedPoint(boundSW)));
-
+                            //endregion
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
                         log.warn("something died");
-                    }
+                    }*/
+                    //endregion
 
-                    // Initialise Particle Set on user location on Image
-                    Point startPoint = mapper.latlngToPoint(loc);
-
-                    log.info("Start location is {} on image.", startPoint);
-                    particleSet = new ParticleSet(mContext, 1000, bitmap, startPoint.x, startPoint.y);
-
-                } catch (Exception e) {
+                } catch (JSONException e) {
                     e.printStackTrace();
+                    log.error("Failed to initialize mapper");
                 }
             }
         }
@@ -366,9 +341,9 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     }
 
     public void setActivity(Activity activity) {
-        if(activity instanceof MapsActivity){
+        if (activity instanceof MapsActivity) {
             this.mapsActivity = (MapsActivity) activity;
-        } else if(activity instanceof DebugActivity){
+        } else if (activity instanceof DebugActivity) {
             this.debugActivity = (DebugActivity) activity;
         }
     }
@@ -393,7 +368,6 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
         this.particleSet = particleSet;
     }
 
-
     //endregion
 
     //region Listener Interface
@@ -408,7 +382,11 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
         }
     }
 
-    private List<OnLocationChangedListener> onLocationChangedListeners = new ArrayList<>();
+    public class LocalBinder extends Binder {
+        public DeadReckoning getService() {
+            return DeadReckoning.this;
+        }
+    }
 
     //endregion
 

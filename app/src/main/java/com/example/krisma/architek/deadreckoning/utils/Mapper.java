@@ -4,6 +4,8 @@ import android.graphics.Point;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,11 +18,11 @@ public class Mapper {
 
     private static final Logger log = LoggerFactory.getLogger(Mapper.class);
 
-
     // Common Variables
     private final Point iCenter;
     private final LatLng oCenter;
     private final LatLng oNW;
+    private final JSONObject corners;
     private final float bearing;
 
     // Variables used to map a Point to LatLng
@@ -29,12 +31,20 @@ public class Mapper {
     private double c;
     private double d;
 
-    public Mapper(Point iCenter, LatLng oCenter, LatLng oNW, float bearing){
+    public Mapper(Point iCenter, LatLng oCenter, JSONObject corners, float bearing) throws JSONException {
         this.iCenter = iCenter;
         this.oCenter = oCenter;
-        this.oNW = oNW;
+        this.corners = corners;
         this.bearing = bearing;
 
+        LatLng C1 = new LatLng(corners.getJSONArray("coordinate1").getDouble(0), corners.getJSONArray("coordinate1").getDouble(1));
+        LatLng C2 = new LatLng(corners.getJSONArray("coordinate2").getDouble(0), corners.getJSONArray("coordinate2").getDouble(1));
+        LatLng C3 = new LatLng(corners.getJSONArray("coordinate3").getDouble(0), corners.getJSONArray("coordinate3").getDouble(1));
+        LatLng C4 = new LatLng(corners.getJSONArray("coordinate4").getDouble(0), corners.getJSONArray("coordinate4").getDouble(1));
+
+        log.info("Top Left (C1): {}, Top Right (C2): {}, Bottom Right (C3): {}, Bottom Left (C4): {}", C1, C2, C3, C4);
+
+        this.oNW = C1;
         solveTransformation();
     }
 

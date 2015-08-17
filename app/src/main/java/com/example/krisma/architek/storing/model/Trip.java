@@ -68,28 +68,28 @@ public class Trip {
         }
     }
 
-    public class TripBuilder {
+    public static class Builder {
         private long startTime;
         private long endTime;
         private LatLng startPos;
         private LatLng endPos;
 
-        public TripBuilder setStartTime(long startTime) {
+        public Builder setStartTime(long startTime) {
             this.startTime = startTime;
             return this;
         }
 
-        public TripBuilder setEndTime(long endTime) {
+        public Builder setEndTime(long endTime) {
             this.endTime = endTime;
             return this;
         }
 
-        public TripBuilder setStartPos(LatLng startPos) {
+        public Builder setStartPos(LatLng startPos) {
             this.startPos = startPos;
             return this;
         }
 
-        public TripBuilder setEndPos(LatLng endPos) {
+        public Builder setEndPos(LatLng endPos) {
             this.endPos = endPos;
             return this;
         }
