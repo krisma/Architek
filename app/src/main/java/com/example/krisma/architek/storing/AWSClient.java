@@ -1,4 +1,4 @@
-package com.example.krisma.architek.aws;
+package com.example.krisma.architek.storing;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -54,7 +54,6 @@ public class AWSClient {
         s3.setRegion(Region.getRegion(Regions.EU_WEST_1));
 
         transferUtility = new TransferUtility(s3, context);
-
     }
 
 
@@ -76,6 +75,7 @@ public class AWSClient {
                     OBJECT_KEY,                 /* The key for the uploaded object */
                     imageFile                   /* The file where the data to upload exists */
             );
+
             observer.setTransferListener(new TransferListener() {
                 @Override
                 public void onStateChanged(int id, TransferState state) {

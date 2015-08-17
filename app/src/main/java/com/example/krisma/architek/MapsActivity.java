@@ -10,15 +10,12 @@ import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.app.FragmentActivity;
 import android.view.View;
 import android.widget.TextView;
 
-import com.amazonaws.auth.CognitoCachingCredentialsProvider;
-import com.amazonaws.regions.Regions;
-import com.example.krisma.architek.aws.AWSClient;
+import com.example.krisma.architek.storing.AWSClient;
 import com.example.krisma.architek.deadreckoning.DeadReckoning;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
 import com.example.krisma.architek.listeners.CameraChangedListener;
@@ -48,7 +45,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 
 public class MapsActivity extends FragmentActivity implements LocationSource.OnLocationChangedListener, HeadingListener {
