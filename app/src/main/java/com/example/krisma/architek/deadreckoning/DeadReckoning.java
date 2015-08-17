@@ -46,7 +46,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     private static final Logger log = LoggerFactory.getLogger(DeadReckoning.class);
     boolean indoor = false;
     boolean DEBUGGING = false;
-    
+
     //region Fields and Constants
     private Context mContext;
     private Mapper mapper;
@@ -158,7 +158,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
                 debugActivity.getOIV().displayParticles();
             } else {
                 // Transform back to Google Map -- Show location on Map by updating onLocationChangedListeners --> MapsActivity included
-                Pose averagePose = particleSet.getPose(); // AVERAGE HERE
+                Pose averagePose = particleSet.getPose();
                 LatLng newPos = mapper.pointToLatLng(new Point((int) averagePose.getX(), (int) averagePose.getY()));
 
                 Location loc = new Location("DEAD_RECKONING");

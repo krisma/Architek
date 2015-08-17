@@ -1,8 +1,14 @@
 package com.example.krisma.architek.storing.model;
 
+import android.graphics.Color;
 import android.util.Log;
 
+import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.TileOverlay;
+import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.maps.android.heatmaps.Gradient;
+import com.google.maps.android.heatmaps.HeatmapTileProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,11 +67,44 @@ public class Trip {
         return positions;
     }
 
+    public TileOverlay addHeatmapToMap(GoogleMap map) {
+
+        // Prepare Gradient
+        int[] colors = {
+                Color.rgb(102, 225, 0), // green
+                Color.rgb(255, 0, 0)    // red
+        };
+
+        float[] startPoints = {
+                0.2f, 1f
+        };
+
+        Gradient gradient = new Gradient(colors, startPoints);
+
+        // Create a heat map tile provider, passing it the latlngs of the police stations.
+        HeatmapTileProvider mProvider = new HeatmapTileProvider.Builder()
+                .data(positions)
+                .gradient(gradient)
+                .build();
+
+        // Add a tile overlay to the map, using the heat map tile provider.
+        TileOverlay overlay = map.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+        return overlay;
+    }
+
     public void addPosition(LatLng latLng){
         this.positions.add(latLng);
         if(positions.size() % 100 == 0){
             Log.i("TRIP", positions.size() + " positions added.");
         }
+    }
+
+    public void printLatLngs(){
+        String res = "";
+        for(LatLng l : positions){
+            res += l + "\n";
+        }
+        Log.i("TRIP", res);
     }
 
     public static class Builder {
