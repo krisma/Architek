@@ -8,12 +8,14 @@ import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.example.krisma.architek.storing.model.TripBuilder;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.LocationSource;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,27 +77,17 @@ public class LocationTracker implements GoogleApiClient.ConnectionCallbacks, Goo
         LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
     }
 
-    /**
-     * Function to get latitude
-     */
     public double getLatitude() {
         if (location != null) {
             latitude = location.getLatitude();
         }
-
-        // return latitude
         return latitude;
     }
 
-    /**
-     * Function to get longitude
-     */
     public double getLongitude() {
         if (location != null) {
             longitude = location.getLongitude();
         }
-
-        // return longitude
         return longitude;
     }
 
@@ -153,5 +145,9 @@ public class LocationTracker implements GoogleApiClient.ConnectionCallbacks, Goo
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
 
+    }
+
+    public LatLng getCurrentLatLng() {
+        return new LatLng(latitude, longitude);
     }
 }

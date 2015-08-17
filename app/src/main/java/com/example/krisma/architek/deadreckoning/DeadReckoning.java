@@ -24,6 +24,8 @@ import com.example.krisma.architek.deadreckoning.trackers.MovementTracker;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.HeadingListener;
 import com.example.krisma.architek.deadreckoning.trackers.listeners.MoveListener;
 import com.example.krisma.architek.deadreckoning.utils.Mapper;
+import com.example.krisma.architek.storing.model.Trip;
+import com.example.krisma.architek.storing.model.TripBuilder;
 import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.LatLng;
@@ -58,6 +60,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     private MapsActivity mapsActivity;
     private Location drLocation;
     private DebugActivity debugActivity;
+    private Trip trip;
 
     //endregion
 
@@ -162,6 +165,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
                 loc.setLongitude(newPos.longitude);
 
                 updateListeners(loc);
+                trip.addPosition(newPos);
 
                 //showParticlesOnMap();
             }
@@ -207,6 +211,12 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     boolean DEBUGGING = false;
 
     public void transitionToIndoor() {
+
+        trip = new TripBuilder()
+                .setStartPos(locationTracker.getCurrentLatLng())
+                .setStartTime(System.currentTimeMillis())
+                .createTrip();
+
         if(DEBUGGING){
 
             // initialization is done in OverlayImageView
