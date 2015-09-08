@@ -1,11 +1,13 @@
 package com.example.krisma.architek.asynctasks;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 
 import com.example.krisma.architek.LoginActivity;
@@ -26,18 +28,28 @@ import java.net.URL;
 public class AsyncSkipSignup extends AsyncTask<Void, Void, Void> {
 
     private final Context context;
+    private final ProgressDialog progress;
 
     public AsyncSkipSignup(Context context) {
         this.context = context;
+        this.progress = Tools.getSpinnerDialog(context);
+    }
+
+    @Override
+    protected void onProgressUpdate(Void... values){
+        super.onProgressUpdate();
+        progress.show();
     }
 
     @Override
     protected Void doInBackground(Void... parameters) {
         final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(context);
-
         URL url = null;
         HttpURLConnection conn = null;
+        publishProgress();
+
         try {
+
 //                    url = new URL("http://10.0.2.2:8080/skipsignup");
             url = new URL("https://architek-server.herokuapp.com/skipsignup");
             conn = (HttpURLConnection) url.openConnection();
@@ -68,7 +80,7 @@ public class AsyncSkipSignup extends AsyncTask<Void, Void, Void> {
                 f.printStackTrace();
             }
             if (jObject != null) try {
-                if (jObject.getBoolean("success") == true) {
+                if (jObject.getBoolean("success")) {
 
 
                     SharedPreferences.Editor editor = getPrefs.edit();
@@ -104,6 +116,7 @@ public class AsyncSkipSignup extends AsyncTask<Void, Void, Void> {
             } catch (Exception e) {
                 e.printStackTrace(); //If you want further info on failure...
             }
+            progress.dismiss();
         }
         return null;
     }

@@ -2,6 +2,7 @@ package com.example.krisma.architek.deadreckoning.utils;
 
 import android.graphics.Point;
 
+import com.example.krisma.architek.storing.model.Building;
 import com.google.android.gms.maps.model.LatLng;
 
 import org.json.JSONException;
@@ -22,7 +23,6 @@ public class Mapper {
     private final Point iCenter;
     private final LatLng oCenter;
     private final LatLng oNW;
-    private final JSONObject corners;
     private final float bearing;
 
     // Variables used to map a Point to LatLng
@@ -31,21 +31,24 @@ public class Mapper {
     private double c;
     private double d;
 
-    public Mapper(Point iCenter, LatLng oCenter, JSONObject corners, float bearing) throws JSONException {
+    public Mapper(Point iCenter, LatLng oCenter, Building building, float bearing) throws JSONException {
         this.iCenter = iCenter;
         this.oCenter = oCenter;
-        this.corners = corners;
         this.bearing = bearing;
 
-        LatLng C1 = new LatLng(corners.getJSONArray("coordinate1").getDouble(0), corners.getJSONArray("coordinate1").getDouble(1));
-        LatLng C2 = new LatLng(corners.getJSONArray("coordinate2").getDouble(0), corners.getJSONArray("coordinate2").getDouble(1));
-        LatLng C3 = new LatLng(corners.getJSONArray("coordinate3").getDouble(0), corners.getJSONArray("coordinate3").getDouble(1));
-        LatLng C4 = new LatLng(corners.getJSONArray("coordinate4").getDouble(0), corners.getJSONArray("coordinate4").getDouble(1));
+        log.info("Top Left (C1): {}, Top Right (C2): {}, Bottom Right (C3): {}, Bottom Left (C4): {}", building.C1, building.C2, building.C3, building.C4);
 
-        log.info("Top Left (C1): {}, Top Right (C2): {}, Bottom Right (C3): {}, Bottom Left (C4): {}", C1, C2, C3, C4);
-
-        this.oNW = C1;
+        this.oNW = building.C1;
         solveTransformation();
+    }
+
+    public static double headingFromTo(LatLng from, LatLng to){
+        double heading = Math.toDegrees(Math.atan2(
+                Math.sin(to.longitude - from.longitude) * Math.cos(to.latitude),
+                Math.cos(from.latitude) * Math.sin(to.latitude) - Math.sin(from.latitude) * Math.cos(to.latitude) * Math.cos(to.longitude - from.longitude)
+
+        ));
+        return heading;
     }
 
     public Point latlngToPoint( LatLng pos){

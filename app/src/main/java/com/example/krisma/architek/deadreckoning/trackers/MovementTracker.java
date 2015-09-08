@@ -86,7 +86,7 @@ public class MovementTracker implements SensorEventListener {
             int k = 0;
             float v = vSum / 3;
 
-            float direction = (v > mLastValues[k] ? 1 : (v < mLastValues[k] ? -1 : 0));
+            float direction = v > mLastValues[k] ? 1 : (v < mLastValues[k] ? -1 : 0);
             if (direction == - mLastDirections[k]) {
                 // Direction changed
                 int extType = (direction > 0 ? 0 : 1); // minumum or maximum?

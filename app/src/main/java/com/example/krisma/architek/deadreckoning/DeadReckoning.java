@@ -237,7 +237,7 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
                     mapper = new Mapper(                                                // Mapper responsible of coordinate transformations, needs 2 common points
                             new Point(bitmap.getWidth() / 2, bitmap.getHeight() / 2),   // Image Center
                             overlay.getPosition(),                                      // Overlay Center
-                            getCorners(),                                               // Overlay Corners
+                            helper.getCurrentBuilding(),                                               // Overlay Corners
                             overlay.getBearing());                                      // Overlay rotation/bearing
 
                     // Initialise Particle Set on user location on Image
@@ -328,16 +328,6 @@ public class DeadReckoning extends Service implements MoveListener, HeadingListe
     //endregion
 
     //region Utilities
-
-    private JSONObject getCorners() {
-        JSONObject corners = null;
-        try {
-            corners = mapsActivity.getOverlayHelper().getCurrentBuilding().getJSONObject("fourCoordinates");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return corners;
-    }
 
     public void setGroundOverlay(GroundOverlay overlay) {
         this.overlay = overlay;

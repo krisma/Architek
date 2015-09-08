@@ -6,6 +6,8 @@ import com.example.krisma.architek.MapsActivity;
 import com.example.krisma.architek.asynctasks.AsyncDrawDefaultFloor;
 import com.example.krisma.architek.asynctasks.AsyncDrawNextFloor;
 import com.example.krisma.architek.deadreckoning.utils.Helper;
+import com.example.krisma.architek.deadreckoning.utils.Logger;
+import com.example.krisma.architek.storing.model.Building;
 import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -17,8 +19,6 @@ import com.google.maps.android.heatmaps.HeatmapTileProvider;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -35,13 +35,18 @@ import java.util.Map;
 
 public class OverlayHelper {
 
-    private static final Logger log = LoggerFactory.getLogger(OverlayHelper.class);
+    private static final Logger log = new Logger(OverlayHelper.class);
+    private Building building;
 
     public OverlayHelper(MapsActivity mapsActivity) {
         this.mapsActivity = mapsActivity;
     }
 
     //region Getters and Setters
+    public void setBuilding(Building building){
+        this.building = building;
+    }
+
     public GroundOverlay getGroundOverlay() {
         return groundOverlay;
     }
@@ -98,11 +103,11 @@ public class OverlayHelper {
         this.currentOverlayBitmap = currentOverlayBitmap;
     }
 
-    public JSONObject getCurrentBuilding() {
+    public Building getCurrentBuilding() {
         return currentBuilding;
     }
 
-    public void setCurrentBuilding(JSONObject currentBuilding) {
+    public void setCurrentBuilding(Building currentBuilding) {
         this.currentBuilding = currentBuilding;
     }
 
@@ -133,18 +138,20 @@ public class OverlayHelper {
 
     //region Methods
     public LatLng detectOverlay(LatLng currentLocation) {
-        log.debug("Called: detectOverlay");
+        log.i("Called: detectOverlay");
 
-        JSONArray buildings = getCoordinatesHash();
+        JSONArray buildings = getCoordinatesHash(); // latlng location for each building
+
         if(buildings != null) {
             for (int i = 0; i < buildings.length(); i++) {
                 try {
-                    LatLngBounds bounds = Helper.getBoundsFromJSONObject(buildings.getJSONObject(i)
-                            .getJSONObject("twoCoordinates"));
-                    log.debug("coordinates : {}", bounds.toString());
+                    LatLngBounds bounds = Helper.getBoundsFromJSONObject(buildings.getJSONObject(i).getJSONObject("twoCoordinates"));
+
+                    log.i("coordinates : " + bounds.toString());
+
                     if (bounds.contains(currentLocation) && bounds != mapsActivity.getCurrentBounds()) {
                         mapsActivity.setCurrentBounds(bounds);
-                        return Helper.getLagLngFromLngLat(buildings.getJSONObject(i).getJSONArray("location"));
+                        return bounds.getCenter();
                     }
 
                 } catch (JSONException e) {
@@ -174,11 +181,15 @@ public class OverlayHelper {
         for (int i = 0; i < coordinatesHash.length(); i++) {
             try {
                 JSONObject thisBuilding = coordinatesHash.getJSONObject(i);
+
+                Building building = new Building(mapsActivity.getApplicationContext(), thisBuilding);
+
+
                 LatLng toDraw = Helper.getLagLngFromLngLat(thisBuilding.getJSONArray("location"));
                 if (overlaysHash.containsKey(toDraw)) {
                     continue;
                 } else {
-                    new AsyncDrawDefaultFloor(mapsActivity.getOverlayHelper(), thisBuilding).execute();
+                    new AsyncDrawDefaultFloor(mapsActivity.getOverlayHelper(), building).execute();
                 }
 
             } catch (JSONException e) {
@@ -252,7 +263,7 @@ public class OverlayHelper {
     URL currentOverlayURL;
     Map<LatLng, GroundOverlay> overlaysHash = new HashMap<LatLng, GroundOverlay>();
     AsyncDrawNextFloor drawNextFloorAsyncTask;
-    JSONObject currentBuilding;
+    Building currentBuilding;
     HashMap<URL, Bitmap> floorplans = new HashMap<URL, Bitmap>();
     boolean indoor;
     Bitmap currentOverlayBitmap;

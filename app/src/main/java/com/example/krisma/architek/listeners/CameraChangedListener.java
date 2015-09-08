@@ -36,6 +36,8 @@ public class CameraChangedListener {
         log.d("Created");
 
         this.cameraListener = new GoogleMap.OnCameraChangeListener() {
+            long lastFocus = System.currentTimeMillis();
+
             @Override
             public void onCameraChange(final CameraPosition cameraPosition) {
                 log.d("Changed");
@@ -56,11 +58,13 @@ public class CameraChangedListener {
                     if (helper.lastMoveFarFarEnough(cameraPosition.target, mapsActivity.getLastPosition())) {
                         updated = false;
                         updateBuildings(cameraPosition);
+                        log.d("Long enough");
+
                     }
 
                     if (helper.lastMoveFarEnough(cameraPosition.target, mapsActivity.getLastPosition()) ) { // updatedBounds != null && !updatedBounds.contains(cameraPosition.target)
-                        if (helper.getCoordinatesHash() != null && System.currentTimeMillis() > mapsActivity.getLastOverlayDetect() + 4000) {
-                            mapsActivity.setLastOverlayDetect(System.currentTimeMillis());
+                        if (helper.getCoordinatesHash() != null && System.currentTimeMillis() > lastFocus + 4000) {
+                            lastFocus = System.currentTimeMillis();
                             log.d("Focussing");
                             focusBuilding(cameraPosition);
                         }
@@ -90,8 +94,9 @@ public class CameraChangedListener {
 
     private void focusBuilding(CameraPosition cameraPosition) {
         LatLng tmp = helper.detectOverlay(cameraPosition.target);
+
         if(tmp != null) {
-            boolean sameBuilding = tmp.equals(helper.getCurrentBuildingLocation());
+            boolean sameBuilding = tmp.equals(mapsActivity.getCurrentBounds().getCenter());
 
             if (!sameBuilding) {
                 new AsyncSetFocusBuilding(mapsActivity).execute(tmp);

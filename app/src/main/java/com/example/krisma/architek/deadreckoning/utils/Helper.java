@@ -6,6 +6,7 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,6 +17,9 @@ import java.io.InputStreamReader;
  * Created by smp on 22/07/15.
  */
 public class Helper {
+    private static final Logger log = new Logger(Helper.class);
+
+
     public static LatLng getLagLngFromLngLat(JSONArray coordinate) {
         try {
             return new LatLng(coordinate.getDouble(1), coordinate.getDouble(0));
@@ -26,18 +30,30 @@ public class Helper {
         return null;
     }
 
-    public static  LatLngBounds getBoundsFromJSONObject(JSONObject twoCoordinates) {
+    public static LatLngBounds getBoundsFromJSONObject(JSONObject twoCoordinates) {
         LatLng sw = null;
         LatLng ne = null;
+
         try {
             JSONArray coordinatesw = twoCoordinates.getJSONArray("coordinatesw");
             JSONArray coordinatene = twoCoordinates.getJSONArray("coordinatene");
+
             sw = new LatLng(coordinatesw.getDouble(0), coordinatesw.getDouble(1));
             ne = new LatLng(coordinatene.getDouble(0), coordinatene.getDouble(1));
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return new LatLngBounds(sw, ne);
+
+        LatLngBounds bounds = null;
+        if(sw != null && ne != null) {
+            try {
+                bounds = new LatLngBounds(sw, ne);
+            } catch (IllegalArgumentException e){
+                bounds = new LatLngBounds(ne, sw);
+                log.w("Swapping SW and NE.");
+            }
+        }
+        return bounds;
     }
 
     public static String convertStreamToString(InputStream is) {

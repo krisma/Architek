@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 
+import com.example.krisma.architek.storing.model.Building;
 import com.example.krisma.architek.tools.OverlayHelper;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.GroundOverlay;
@@ -24,11 +25,11 @@ public class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
 
     private final OverlayHelper overlayHelper;
 
-        private JSONObject thisBuilding = null;
+        private Building building = null;
 
-        public AsyncDrawDefaultFloor(OverlayHelper overlayHelper, JSONObject thisBuilding) {
+        public AsyncDrawDefaultFloor(OverlayHelper overlayHelper, Building building) {
             this.overlayHelper = overlayHelper;
-            this.thisBuilding = thisBuilding;
+            this.building = building;
         }
 
         @Override
@@ -36,7 +37,7 @@ public class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
             URL url = null;
             Bitmap bmp = null;
             try {
-                url = new URL(thisBuilding.getString("defaultfloor"));
+                url = new URL(building.defaultFloor);
                 bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream());
                 //bmp = BitmapFactory.decodeResource(getResources(), R.drawable.wheeler11_edged_test_coords);
                 overlayHelper.getFloorplans().put(url, bmp);
@@ -44,8 +45,6 @@ public class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
                 log.debug(url.toString());
 
             } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -57,14 +56,11 @@ public class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
 
         @Override
         protected void onPostExecute(Bitmap result) {
-            try {
-
                 overlayHelper.setCurrentOverlayBitmap(result);
-                LatLng anchor = new LatLng((Double) thisBuilding.getJSONArray("location").get(1),
-                        (Double) thisBuilding.getJSONArray("location").get(0));
-                Float height = new Float(thisBuilding.getDouble("height"));
-                Float width = new Float(thisBuilding.getDouble("width"));
-                Float bearing = new Float(thisBuilding.getDouble("bearing"));
+                LatLng anchor = building.center;
+                float height = (float) building.height;
+                float width = (float) building.width;
+                float bearing = (float) building.bearing;
 
                 log.info("From Server || H: {}, W: {}, B: {}", height, width, bearing);
 
@@ -76,7 +72,7 @@ public class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
                 overlayHelper.getGroundOverlay().setBearing(bearing);
 
                 overlayHelper.getMapsActivity().getDeadReckoning().setGroundOverlay(overlayHelper.getGroundOverlay());
-                overlayHelper.setCurrentBuilding(thisBuilding);
+                overlayHelper.setCurrentBuilding(building);
 
                 for (GroundOverlay g : overlayHelper.getOverlaysHash().values()) {
                     g.remove();
@@ -87,10 +83,6 @@ public class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
                 temp.setBearing(bearing);
 
                 overlayHelper.transitionToIndoor();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
         }
 
         @Override

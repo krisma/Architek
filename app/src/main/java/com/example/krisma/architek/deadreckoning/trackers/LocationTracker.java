@@ -102,7 +102,7 @@ public class LocationTracker implements GoogleApiClient.ConnectionCallbacks, Goo
             float accuracyChange = lastLocation.getAccuracy() - location.getAccuracy();
 
             float acc = location.hasAccuracy() ? location.getAccuracy() : 0;
-            Log.d("GPSTracker", getLatitude() + " : " + getLongitude() + " acc: " + acc + " change:" + accuracyChange);
+            //Log.d("GPSTracker", getLatitude() + " : " + getLongitude() + " acc: " + acc + " change:" + accuracyChange);
 
             if (accuracyChange < -10) {
                 Log.w("GPSTracker", "Went indoors - Change to Dead Reckoning!");
