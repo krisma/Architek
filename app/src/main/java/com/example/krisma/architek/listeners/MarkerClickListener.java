@@ -17,7 +17,6 @@ public class MarkerClickListener {
             public boolean onMarkerClick(Marker marker) {
                 if (marker != null) {
                     marker.remove();
-                    mapsActivity.getExpandMenu().collapse();
                 }
                 return true;
             }

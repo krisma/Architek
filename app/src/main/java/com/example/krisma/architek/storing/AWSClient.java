@@ -60,7 +60,7 @@ public class AWSClient {
 
     public void uploadRawFloorplan(LatLng location, int floor, Bitmap floorplan){
 
-        final String OBJECT_KEY = location.latitude + ";" + location.longitude + ";" + floor + ".PNG";
+        final String OBJECT_KEY = location.latitude + ";" + location.longitude + ";" + floor + ".PNG"; // TODO: include building name/number
         FileOutputStream outStream;
         try {
             File imageFile = new File(context.getCacheDir().getPath() + UUID.randomUUID());
@@ -87,7 +87,6 @@ public class AWSClient {
                         case FAILED:
                             log.warn("Upload Failed!");
                             Toast.makeText(context, "Upload Failed. Please try again.", Toast.LENGTH_LONG).show();
-
                             break;
                     }
                 }

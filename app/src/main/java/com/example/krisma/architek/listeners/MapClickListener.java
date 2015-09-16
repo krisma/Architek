@@ -24,7 +24,6 @@ public class MapClickListener {
                 mapsActivity.getmMap().animateCamera(CameraUpdateFactory.newLatLng(latLng), new GoogleMap.CancelableCallback() {
                     @Override
                     public void onFinish() {
-                        mapsActivity.getExpandMenu().expand();
                     }
 
                     @Override

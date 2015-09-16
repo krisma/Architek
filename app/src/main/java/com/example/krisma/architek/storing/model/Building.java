@@ -49,17 +49,19 @@ public class Building {
         C4 = new LatLng(corners.getJSONArray("coordinate4").getDouble(0), corners.getJSONArray("coordinate4").getDouble(1));
 
         bearing = Mapper.headingFromTo(C3, C2);
+
         try {
             center = new LatLngBounds(C4, C2).getCenter();
         } catch (IllegalArgumentException e){
             center = new LatLngBounds(C2, C4).getCenter();
         }
+
         defaultFloor = building.getString("defaultfloor");
         floors = building.getJSONArray("floors");
         floorCount = floors.length();
 
-        width = building.getDouble("width");
-        height = building.getDouble("height");
+        width = building.getDouble("width");    // TODO: needs to be automated/calculated
+        height = building.getDouble("height");  // TODO: needs to be automated/calculated
 
         new AsyncGetBuildingMaps(context).execute(this); // calls setFloors(...)
     }

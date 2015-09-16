@@ -46,7 +46,6 @@ public class Mapper {
         double heading = Math.toDegrees(Math.atan2(
                 Math.sin(to.longitude - from.longitude) * Math.cos(to.latitude),
                 Math.cos(from.latitude) * Math.sin(to.latitude) - Math.sin(from.latitude) * Math.cos(to.latitude) * Math.cos(to.longitude - from.longitude)
-
         ));
         return heading;
     }

@@ -12,10 +12,12 @@
         <option name="SELECTED_TEST_ARTIFACT" value="_android_test_" />
         <option name="ASSEMBLE_TASK_NAME" value="assembleDebug" />
         <option name="COMPILE_JAVA_TASK_NAME" value="compileDebugSources" />
-        <option name="SOURCE_GEN_TASK_NAME" value="generateDebugSources" />
         <option name="ASSEMBLE_TEST_TASK_NAME" value="assembleDebugTest" />
         <option name="COMPILE_JAVA_TEST_TASK_NAME" value="compileDebugTestSources" />
-        <option name="TEST_SOURCE_GEN_TASK_NAME" value="generateDebugTestSources" />
+        <afterSyncTasks>
+          <task>generateDebugSources</task>
+          <task>generateDebugTestSources</task>
+        </afterSyncTasks>
         <option name="ALLOW_USER_CONFIGURATION" value="false" />
         <option name="MANIFEST_FILE_RELATIVE_PATH" value="/src/main/AndroidManifest.xml" />
         <option name="RES_FOLDER_RELATIVE_PATH" value="/src/main/res" />
@@ -87,6 +89,7 @@
     <orderEntry type="jdk" jdkName="Android API 21 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" exported="" name="play-services-plus-7.0.0" level="project" />
+    <orderEntry type="library" exported="" name="design-22.2.0" level="project" />
     <orderEntry type="library" exported="" name="play-services-base-7.0.0" level="project" />
     <orderEntry type="library" exported="" name="aws-android-sdk-s3-2.2.5" level="project" />
     <orderEntry type="library" exported="" name="play-services-panorama-7.0.0" level="project" />
@@ -98,7 +101,6 @@
     <orderEntry type="library" exported="" name="play-services-7.0.0" level="project" />
     <orderEntry type="library" exported="" name="play-services-gcm-7.0.0" level="project" />
     <orderEntry type="library" exported="" name="aws-android-sdk-ddb-2.2.5" level="project" />
-    <orderEntry type="library" exported="" name="1_aws-android-sdk-ddb-2.2.5" level="project" />
     <orderEntry type="library" exported="" name="aws-android-sdk-cognito-2.2.5" level="project" />
     <orderEntry type="library" exported="" name="aws-android-sdk-core-2.2.5" level="project" />
     <orderEntry type="library" exported="" name="play-services-wearable-7.0.0" level="project" />
@@ -122,6 +124,5 @@
     <orderEntry type="library" exported="" name="play-services-nearby-7.0.0" level="project" />
     <orderEntry type="library" exported="" name="bolts-android-1.1.4" level="project" />
     <orderEntry type="library" exported="" name="appcompat-v7-22.2.0" level="project" />
-    <orderEntry type="library" exported="" name="floatingactionbutton-1.9.1" level="project" />
   </component>
 </module>

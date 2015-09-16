@@ -11,6 +11,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.FragmentActivity;
 import android.view.View;
 import android.widget.TextView;
@@ -28,8 +29,6 @@ import com.example.krisma.architek.listeners.MyLocationChangedListener;
 import com.example.krisma.architek.tools.FB;
 import com.example.krisma.architek.tools.OverlayHelper;
 import com.facebook.Profile;
-import com.getbase.floatingactionbutton.FloatingActionButton;
-import com.getbase.floatingactionbutton.FloatingActionsMenu;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -129,9 +128,6 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         mMinusOneButton = (FloatingActionButton) findViewById(R.id.downButton);
         mMinusOneButton.setOnClickListener(floorDownButtonClickListener.getMinusButtonClickListener());
         mMinusOneButton.setVisibility(View.INVISIBLE);
-
-        expandMenu = (FloatingActionsMenu) findViewById(R.id.right_menu);
-        expandMenu.setSoundEffectsEnabled(true);
 
         FloatingActionButton editButton = (FloatingActionButton) findViewById(R.id.editButton);
         editButton.setOnClickListener(pictureButtonClickListener.getPicButtonClickListener());
@@ -263,10 +259,6 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
         return floorView;
     }
 
-    public FloatingActionsMenu getExpandMenu() {
-        return expandMenu;
-    }
-
     public boolean isFirstLoad() {
         return firstLoad;
     }
@@ -321,7 +313,6 @@ public class MapsActivity extends FragmentActivity implements LocationSource.OnL
     private long lastOverlayDetect = System.currentTimeMillis();
     private LatLngBounds currentBounds;
 
-    private FloatingActionsMenu expandMenu;
     private FloatingActionButton mMinusOneButton;
     private FloatingActionButton mPlusOneButton;
     private TextView floorView;
