@@ -51,7 +51,7 @@ public class AsyncSkipSignup extends AsyncTask<Void, Void, Void> {
         try {
 
 //                    url = new URL("http://10.0.2.2:8080/skipsignup");
-            url = new URL("https://architek-server.herokuapp.com/skipsignup");
+            url = new URL("https://architek-server.herokuapp.com/skipsignup"); // Creates an anonymous user (UUID)
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
@@ -86,8 +86,8 @@ public class AsyncSkipSignup extends AsyncTask<Void, Void, Void> {
                     SharedPreferences.Editor editor = getPrefs.edit();
                     editor.putString("token",jObject.getString("token"));
                     editor.apply();
-                    Intent intent = new Intent(context, MapsActivity.class);
-                    context.startActivity(intent);
+                    //Intent intent = new Intent(context, MapsActivity.class);
+                    //context.startActivity(intent);
 
                 } else {
                     AlertDialog.Builder builder = new AlertDialog.Builder(context);
