@@ -174,6 +174,10 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
             @Override
             public void onClick(View arg0) {
                 new AsyncSkipSignup(LoginActivity.this).execute();
+                Intent intent = new Intent(getApplicationContext(), MapsActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                getApplicationContext().startActivity(intent);
             }
         });
 
