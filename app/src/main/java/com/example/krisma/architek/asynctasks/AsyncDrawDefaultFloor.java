@@ -39,7 +39,6 @@ public class AsyncDrawDefaultFloor extends AsyncTask<String, Void, Bitmap> {
             try {
                 url = new URL(building.defaultFloor);
                 bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream());
-                //bmp = BitmapFactory.decodeResource(getResources(), R.drawable.wheeler11_edged_test_coords);
                 overlayHelper.getFloorplans().put(url, bmp);
                 overlayHelper.setCurrentOverlayURL(url);
                 log.debug(url.toString());

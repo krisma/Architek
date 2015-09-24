@@ -3,7 +3,6 @@ package com.example.krisma.architek.asynctasks;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 import com.example.krisma.architek.MapsActivity;
 import com.example.krisma.architek.deadreckoning.utils.Helper;
@@ -44,11 +43,10 @@ public class AsyncSetFocusBuilding extends AsyncTask<LatLng, Void, Boolean> {
         String token = getPrefs.getString("token", "");
         InputStream is;
         HttpURLConnection con = null;
-        String param = String.valueOf(location.latitude) + "," + String.valueOf(location.longitude);
 
         try {
-            url = new URL("https://architek-server.herokuapp.com/getbuildingmaps?" +
-                    "location=" + param);
+            url = Server.createGetBuildingsURL(location);
+
             con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod("GET");
             con.setDoInput(true);

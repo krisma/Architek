@@ -34,15 +34,15 @@ public class AsyncUpdateCoordinatesHash extends AsyncTask<String, Void, JSONArra
         @Override
         protected JSONArray doInBackground(String... params) {
             URL url;
-            HttpURLConnection con = null;
+            HttpURLConnection con;
             JSONArray buildings = null;
             final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(overlayHelper.getMapsActivity().getBaseContext());
             String token = getPrefs.getString("token", "");
-            String coordinateParam = Double.toString(target.latitude) + "," + Double.toString(target.longitude);
-            InputStream is = null;
+
+            InputStream is;
             try {
-                url = new URL("https://architek-server.herokuapp.com/getbuildingsnearby?" +
-                        "coordinate=" + coordinateParam + "&" + "token=" + token);
+                url = Server.createGetBuildingsNearbyURL(target, token);
+
                 con = (HttpURLConnection) url.openConnection();
                 con.setRequestMethod("GET");
                 con.setDoInput(true);

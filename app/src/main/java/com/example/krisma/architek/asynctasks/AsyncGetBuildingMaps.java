@@ -5,13 +5,9 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 
-import com.example.krisma.architek.MapsActivity;
 import com.example.krisma.architek.deadreckoning.utils.Helper;
 import com.example.krisma.architek.storing.model.Building;
-import com.example.krisma.architek.tools.OverlayHelper;
-import com.google.android.gms.maps.model.LatLng;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,15 +36,15 @@ public class AsyncGetBuildingMaps extends AsyncTask<Building, Void, JSONObject> 
 
         log.debug("Called: setFocusBuilding");
         URL url;
+
         final SharedPreferences getPrefs = PreferenceManager.getDefaultSharedPreferences(context);
         String token = getPrefs.getString("token", "");
         InputStream is;
         HttpURLConnection con = null;
-        String param = String.valueOf(building.center.latitude) + "," + String.valueOf(building.center.longitude);
 
         try {
-            url = new URL("https://architek-server.herokuapp.com/getbuildingmaps?" +
-                    "location=" + param);
+            url = Server.createGetBuildingsURL(building.center);
+
             con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod("GET");
             con.setDoInput(true);
